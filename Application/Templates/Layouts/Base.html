@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WorkDesk">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#18332b">
+  <title>{{ page_title }} · WorkDesk</title>
+  <meta name="description" content="WorkDesk keeps internal projects, people, tasks and payments in focus.">
+  <meta property="og:title" content="{{ page_title }} · WorkDesk">
+  <meta property="og:description" content="Internal operations, in focus.">
+  <meta property="og:image" content="{{ social_image_url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }} · WorkDesk">
+  <meta name="twitter:description" content="Internal operations, in focus.">
+  <meta name="twitter:image" content="{{ social_image_url }}">
+  <link rel="icon" href="/Static/Images/Favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/Static/CSS/App.css">
+  <link rel="stylesheet" href="/Static/CSS/Refined.css">
+  <link rel="stylesheet" href="/Static/CSS/Operations.css">
+  <link rel="stylesheet" href="/Static/CSS/Usability.css">
+  <script src="/Static/JS/htmx-2.0.4.min.js" defer></script>
+</head>
+<body class="app-body">
+  <div class="app-frame">
+    {% include "Components/Sidebar.html" %}
+    <div class="sidebar-scrim" data-sidebar-close></div>
+    <section class="workspace">
+      {% include "Components/Topbar.html" %}
+      <main class="main-content" id="main-content" tabindex="-1">
+        {% block content %}{% endblock %}
+      </main>
+    </section>
+    {% include "Components/MobileNav.html" %}
+  </div>
+  <div class="toast-region" aria-live="polite" aria-atomic="true">
+    {% if flash %}<div class="toast toast-success" data-toast><span class="toast-icon">✓</span><span>{{ flash }}</span><button type="button" aria-label="Dismiss notification" data-toast-close>×</button></div>{% endif %}
+    {% if error %}<div class="toast toast-error" data-toast><span class="toast-icon">!</span><span>{{ error }}</span><button type="button" aria-label="Dismiss notification" data-toast-close>×</button></div>{% endif %}
+  </div>
+  <div id="modal-root"></div>
+  <script src="/Static/JS/App.js" defer></script>
+</body>
+</html>

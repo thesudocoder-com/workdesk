@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+!.env.production.example
+.venv
+.pytest_cache
+.idea
+tmp
+output
+__pycache__
+*.pyc
+*.db
+*.db-*
+Tests

@@ -1,0 +1,14 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="page-intro"><div><span class="section-kicker">Workspace configuration</span><h2>Settings</h2><p>Business, regional, and invoice defaults for this workspace.</p></div></section>
+<section class="panel record-form-shell"><form class="record-form" method="post" action="/Settings">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% if errors %}<div class="form-alert" role="alert" tabindex="-1"><span>!</span><div><strong>Correct the highlighted settings</strong><ul>{% for field, message in errors.items() %}<li>{{ message }}</li>{% endfor %}</ul></div></div>{% endif %}
+  <div class="record-fields">
+    {% set fields = [('business_name','Display name','text',true),('legal_name','Legal name','text',false),('business_email','Business email','email',false),('business_phone','Business phone','text',false),('address_line1','Street address','text',false),('city','City','text',false),('region','State / province','text',false),('postal_code','Postal code','text',false),('country','Country','text',false),('timezone','IANA timezone','text',true),('currency','Currency code','text',true),('invoice_prefix','Invoice prefix','text',true),('payment_terms_days','Payment terms (days)','number',true)] %}
+    {% for name,label,type,required in fields %}<label class="field"><span>{{ label }}</span><input class="record-input{% if errors.get(name) %} invalid{% endif %}" type="{{ type }}" name="{{ name }}" value="{{ values.get(name,'') }}" {% if required %}required{% endif %}>{% if errors.get(name) %}<small class="field-error">{{ errors.get(name) }}</small>{% endif %}</label>{% endfor %}
+    <label class="field field-wide"><span>Tax information</span><textarea name="tax_information">{{ values.get('tax_information','') }}</textarea></label>
+    <label class="field field-wide"><span>Invoice footer</span><textarea name="invoice_footer">{{ values.get('invoice_footer','') }}</textarea></label>
+  </div><footer><button class="button button-primary" type="submit">Save settings</button></footer>
+</form></section>
+{% endblock %}

@@ -1,0 +1,1 @@
+"""WorkDesk application package."""

@@ -1,0 +1,41 @@
+<div class="modal-backdrop" data-modal-close></div>
+<section class="modal-card record-modal" role="dialog" aria-modal="true" aria-labelledby="record-form-title">
+  <header><div><span class="section-kicker">WorkDesk record</span><h2 id="record-form-title">{{ form_title }}</h2><p>{{ form_subtitle }}</p></div><a href="{{ cancel_url }}" class="modal-close" aria-label="Close" data-modal-close>×</a></header>
+  {% if prerequisite %}<div class="empty-state roomy"><strong>{{ prerequisite.title }}</strong><span>{{ prerequisite.message }}</span><a class="button button-primary" href="{{ prerequisite.url }}">{{ prerequisite.action }}</a></div>{% else %}
+  <form class="record-form" method="post" action="{{ form_action }}" {% if not standalone %}hx-post="{{ form_action }}" hx-target="#modal-root" hx-swap="innerHTML"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if errors %}<div class="form-alert" role="alert" tabindex="-1" data-form-summary><span>!</span><div><strong>Please correct the form</strong><ul>{% for name, message in errors.items() %}<li>{{ message }}</li>{% endfor %}</ul></div></div>{% endif %}
+    <div class="record-fields">
+      {% for field in fields %}
+      <label class="field {% if field.wide %}field-wide{% endif %}">
+        <span>{{ field.label }}{% if not field.required %}<em>Optional</em>{% endif %}</span>
+        {% if field.type == 'select' %}
+        <div class="select-wrap {% if errors.get(field.name) %}invalid{% endif %}">
+          <select name="{{ field.name }}" id="field-{{ field.name }}" {% if field.required %}required{% endif %}>
+            <option value="">Select {{ field.label|lower }}</option>
+            {% for option in field.options %}
+              {% if option is sequence and option is not string %}
+                {% set option_value = option[0] %}
+                {% set option_label = option[1] %}
+              {% else %}
+                {% set option_value = option %}
+                {% set option_label = option %}
+              {% endif %}
+              <option value="{{ option_value }}" {% if values.get(field.name)|string != '' and values.get(field.name)|string == option_value|string %}selected{% endif %}>{{ option_label }}</option>
+            {% endfor %}
+          </select>
+          <svg><use href="/Static/Images/icons.svg#chevron"/></svg>
+        </div>
+        {% elif field.type == 'textarea' %}
+        <textarea name="{{ field.name }}" placeholder="{{ field.placeholder|default('') }}" {% if field.required %}required{% endif %} class="{% if errors.get(field.name) %}invalid{% endif %}">{{ values.get(field.name, '') }}</textarea>
+        {% else %}
+        <input name="{{ field.name }}" type="{{ field.type }}" value="{{ values.get(field.name, '') }}" placeholder="{{ field.placeholder|default('') }}" {% if field.step %}step="{{ field.step }}"{% endif %} {% if field.required %}required{% endif %} class="record-input {% if errors.get(field.name) %}invalid{% endif %}">
+        {% endif %}
+        {% if errors.get(field.name) %}<small class="field-error">{{ errors.get(field.name) }}</small>{% endif %}
+      </label>
+      {% endfor %}
+    </div>
+    <footer><a class="button button-ghost" href="{{ cancel_url }}" data-modal-close>Cancel</a><button class="button button-primary" type="submit">Save record<svg><use href="/Static/Images/icons.svg#arrow"/></svg></button></footer>
+  </form>
+  {% endif %}
+</section>

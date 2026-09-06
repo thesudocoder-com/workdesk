@@ -1,0 +1,37 @@
+{% extends "Layouts/Auth.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<main class="login-shell">
+  <section class="login-story" aria-label="WorkDesk introduction">
+    <div class="story-top">
+      <a class="brand brand-light" href="/Login">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>WorkDesk</strong><small>Internal operations</small></span>
+      </a>
+    </div>
+    <div class="story-content">
+      <span class="eyebrow-pill"><i></i> Your work, in focus</span>
+      <h1>Run today.<br><em>See tomorrow.</em></h1>
+      <p>One calm place for projects, people, tasks and payments—built for the work that keeps your business moving.</p>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="mobile-brand">
+      <span class="brand-mark"><i></i><i></i><i></i></span><strong>WorkDesk</strong>
+    </div>
+    <div class="login-card">
+      <div class="login-heading"><span class="section-kicker">Welcome back</span><h2>Sign in to your workspace</h2><p>Enter your details to pick up where you left off.</p></div>
+      {% if error %}<div class="form-alert" role="alert"><span>!</span>{{ error }}</div>{% endif %}
+      <form method="post" action="/Login" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label class="field"><span>Email address</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#mail"/></svg><input type="email" name="email" value="{{ email }}" placeholder="you@company.com" autocomplete="email" autocapitalize="none" required autofocus></div></label>
+        <label class="field"><span>Password</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#lock"/></svg><input id="login-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required><button type="button" class="password-toggle" data-password-toggle="login-password" aria-label="Show password"><svg><use href="/Static/Images/icons.svg#eye"/></svg></button></div></label>
+        <button class="button button-primary button-wide" type="submit"><span>Sign in</span><svg><use href="/Static/Images/icons.svg#arrow"/></svg></button>
+      </form>
+      <p class="login-help">Need access? Contact your WorkDesk administrator.</p>
+    </div>
+    <footer>Private workspace <span>•</span> Secure session <span>•</span> WorkDesk © 2026</footer>
+  </section>
+</main>
+{% endblock %}

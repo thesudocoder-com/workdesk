@@ -1,0 +1,25 @@
+<div class="modal-backdrop" data-modal-close></div>
+<section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <header><div><span class="section-kicker">{{ 'Security' if mode == 'reset' else 'New account' }}</span><h2 id="modal-title">{{ 'Reset password' if mode == 'reset' else 'Add team member' }}</h2><p>{% if mode == 'reset' and target_user %}Choose a temporary password for {{ target_user.name }}.{% else %}Invite someone into your WorkDesk workspace.{% endif %}</p></div><button type="button" class="modal-close" aria-label="Close dialog" data-modal-close>×</button></header>
+  {% if error %}<div class="form-alert" role="alert"><span>!</span>{{ error }}</div>{% endif %}
+  {% if mode == 'reset' %}
+  <form method="post" action="/Users/{{ target_user.id if target_user else request.path_params.get('user_id', '') }}/ResetPassword" {% if not standalone %}hx-post="/Users/{{ target_user.id if target_user else request.path_params.get('user_id', '') }}/ResetPassword" hx-target="#modal-root" hx-swap="innerHTML"{% endif %} class="user-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field-grid"><label class="field"><span>New temporary password</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#lock"/></svg><input id="new-password" type="password" name="password" minlength="10" placeholder="At least 10 characters" autocomplete="new-password" required><button type="button" class="password-toggle" data-password-toggle="new-password" aria-label="Show password"><svg><use href="/Static/Images/icons.svg#eye"/></svg></button></div><small>Use at least 10 characters.</small></label><label class="field"><span>Confirm temporary password</span><div class="input-wrap"><input type="password" name="password_confirmation" minlength="10" autocomplete="new-password" required></div></label></div>
+    <footer><a class="button button-ghost" href="/Users" data-modal-close>Cancel</a><button class="button button-primary" type="submit">Reset password</button></footer>
+  </form>
+  {% else %}
+  <form method="post" action="/Users" {% if not standalone %}hx-post="/Users" hx-target="#modal-root" hx-swap="innerHTML"{% endif %} class="user-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field-grid">
+      <label class="field field-wide"><span>Full name</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#user"/></svg><input type="text" name="name" value="{{ form_data.get('name','') }}" placeholder="e.g. Neha Verma" autocomplete="name" required></div></label>
+      <label class="field field-wide"><span>Work email</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#mail"/></svg><input type="email" name="email" value="{{ form_data.get('email','') }}" placeholder="name@company.com" autocomplete="email" required></div></label>
+      <label class="field"><span>Role</span><div class="select-wrap"><select name="role" required>{% for role in roles %}<option value="{{ role.value }}" {% if form_data.get('role') == role.value %}selected{% endif %}>{{ role.value }}</option>{% endfor %}</select><svg><use href="/Static/Images/icons.svg#chevron"/></svg></div></label>
+      <label class="field"><span>Temporary password</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#lock"/></svg><input id="invite-password" type="password" name="password" minlength="10" placeholder="Min. 10 characters" autocomplete="new-password" required><button type="button" class="password-toggle" data-password-toggle="invite-password" aria-label="Show password"><svg><use href="/Static/Images/icons.svg#eye"/></svg></button></div></label>
+      <label class="field field-wide"><span>Confirm temporary password</span><div class="input-wrap"><svg><use href="/Static/Images/icons.svg#lock"/></svg><input type="password" name="password_confirmation" minlength="10" placeholder="Repeat temporary password" autocomplete="new-password" required></div></label>
+    </div>
+    <div class="role-note"><span><svg><use href="/Static/Images/icons.svg#shield"/></svg></span><p><strong>Choose access thoughtfully</strong><small>Developers have full control. Outreach Managers manage clients, projects and finance. Team Members can add and complete tasks.</small></p></div>
+    <footer><a class="button button-ghost" href="/Users" data-modal-close>Cancel</a><button class="button button-primary" type="submit"><svg><use href="/Static/Images/icons.svg#plus"/></svg>Add member</button></footer>
+  </form>
+  {% endif %}
+</section>

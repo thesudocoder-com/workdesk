@@ -1,0 +1,30 @@
+<div class="table-wrap" aria-live="polite">
+  <table class="users-table">
+    <thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Joined</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for user in users %}
+      <tr>
+        <td data-label="Member"><div class="member-cell"><span class="avatar avatar-{{ loop.index0 % 4 }}">{{ user.initials }}</span><div><strong>{{ user.name }}{% if user.id == current_user.id %}<em>You</em>{% endif %}</strong><span>{{ user.email }}</span></div></div></td>
+        <td data-label="Role">
+          <form method="post" action="/Users/{{ user.id }}/Role" class="inline-form role-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <select name="role" aria-label="Role for {{ user.name }}" onchange="this.form.requestSubmit()" {% if user.id == current_user.id %}disabled{% endif %}>
+              {% for role in roles %}<option value="{{ role.value }}" {% if role.value == user.role %}selected{% endif %}>{{ role.value }}</option>{% endfor %}
+            </select>
+          </form>
+        </td>
+        <td data-label="Status"><span class="status-badge {% if user.is_active %}active{% else %}inactive{% endif %}"><i></i>{{ 'Active' if user.is_active else 'Inactive' }}</span></td>
+        <td data-label="Joined"><span class="date-cell">{{ user.created_at.strftime('%d %b %Y') }}</span></td>
+        <td class="action-cell">
+          <details class="row-menu"><summary aria-label="Actions for {{ user.name }}">•••</summary><div>
+            <a href="/Users/{{ user.id }}/ResetPassword" hx-get="/Users/{{ user.id }}/ResetPassword" hx-target="#modal-root" hx-swap="innerHTML"><svg><use href="/Static/Images/icons.svg#lock"/></svg>Reset password</a>
+            <form method="post" action="/Users/{{ user.id }}/Status"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" {% if user.id == current_user.id %}disabled{% endif %}><svg><use href="/Static/Images/icons.svg#power"/></svg>{{ 'Deactivate' if user.is_active else 'Reactivate' }}</button></form>
+          </div></details>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5"><div class="empty-state"><span class="empty-icon"><svg><use href="/Static/Images/icons.svg#search"/></svg></span><strong>No team members found</strong><span>Try changing your search or filters.</span><a href="/Users" class="text-button">Clear all filters</a></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>

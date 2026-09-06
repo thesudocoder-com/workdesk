@@ -1,0 +1,22 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="invoice-actions no-print">
+  <a class="back-link" href="/Finance"><svg><use href="/Static/Images/icons.svg#arrow-left"/></svg>Back to finance</a>
+  <div>{% if invoice.outstanding > 0 and invoice.status not in ['Draft','Cancelled'] %}<a class="button button-secondary" href="/Finance/Payments/New?invoice_id={{ invoice.id }}" hx-get="/Finance/Payments/New?invoice_id={{ invoice.id }}" hx-target="#modal-root">Record payment</a>{% endif %}<a class="button button-secondary" href="/Finance/Invoices/{{ invoice.id }}/Download" download>Download PDF</a><button class="button button-primary" type="button" onclick="window.print()">Print invoice</button></div>
+</section>
+<article class="invoice-sheet">
+  <header class="invoice-header">
+    <div class="invoice-brand"><span class="brand-mark"><i></i><i></i><i></i></span><div><strong>{{ business.display_name }}</strong><small>{{ business.name }}</small></div></div>
+    <div class="invoice-title"><span>Invoice</span><strong>{{ invoice.invoice_number }}</strong><small class="status-badge {{ invoice.status|lower|replace(' ','-') }}"><i></i>{{ invoice.status }}</small></div>
+  </header>
+  <section class="invoice-parties">
+    <div><span>From</span><strong>{{ business.name }}</strong>{% if business.address %}<p>{{ business.address }}</p>{% endif %}<p>{{ business.email }}{% if business.phone %}<br>{{ business.phone }}{% endif %}</p>{% if business.tax_number %}<small>Tax no. {{ business.tax_number }}</small>{% endif %}</div>
+    <div><span>Bill to</span><strong>{{ invoice.client.display_name }}</strong>{% if invoice.client.primary_email %}<p>{{ invoice.client.primary_email }}</p>{% endif %}<p>{{ invoice.engagement.name }}</p></div>
+  </section>
+  <section class="invoice-meta"><div><span>Issued</span><strong>{{ invoice.issue_date.strftime('%b %d, %Y') }}</strong></div><div><span>Due</span><strong>{{ invoice.due_date.strftime('%b %d, %Y') }}</strong></div><div><span>Currency</span><strong>{{ invoice.currency }}</strong></div></section>
+  <table class="invoice-totals"><tbody><tr><th>Services — {{ invoice.engagement.name }}</th><td>{{ invoice.subtotal|money(invoice.currency) }}</td></tr><tr><th>Tax</th><td>{{ invoice.tax_amount|money(invoice.currency) }}</td></tr><tr class="invoice-total"><th>Total</th><td>{{ invoice.total|money(invoice.currency) }}</td></tr><tr><th>Paid</th><td>{{ invoice.amount_paid|money(invoice.currency) }}</td></tr><tr class="invoice-balance"><th>Balance due</th><td>{{ invoice.outstanding|money(invoice.currency) }}</td></tr></tbody></table>
+  {% if invoice.notes %}<section class="invoice-notes"><span>Notes</span><p>{{ invoice.notes }}</p></section>{% endif %}
+  {% if invoice.payments %}<section class="invoice-payments"><span>Payment history</span>{% for payment in invoice.payments if not payment.is_void %}<div><p>{{ payment.paid_at|toronto }} · {{ payment.payment_method }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</p><strong>{{ payment.amount|money(payment.currency) }}</strong></div>{% endfor %}</section>{% endif %}
+  <footer>{{ business.footer }}</footer>
+</article>
+{% endblock %}

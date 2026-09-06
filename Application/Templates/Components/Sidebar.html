@@ -1,0 +1,48 @@
+<aside class="sidebar" id="app-sidebar" aria-label="Primary navigation">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="brand-copy"><strong>WorkDesk</strong><small>Internal operations</small></span>
+    <button class="sidebar-collapse" type="button" aria-label="Collapse sidebar" aria-pressed="false" title="Collapse sidebar" data-sidebar-collapse>
+      <svg><use href="/Static/Images/icons.svg#chevron"/></svg>
+    </button>
+    <button class="sidebar-close" type="button" aria-label="Close menu" data-sidebar-close>
+      <svg><use href="/Static/Images/icons.svg#x"/></svg>
+    </button>
+  </div>
+
+  <nav class="side-nav">
+    <span class="nav-label">Overview</span>
+    <a href="/Dashboard" class="nav-item {% if current_section == 'dashboard' %}active{% endif %}">
+      <svg><use href="/Static/Images/icons.svg#home"/></svg><span>Dashboard</span>
+    </a>
+    <span class="nav-label nav-label-spaced">Work</span>
+    <a href="/Projects" class="nav-item {% if current_section == 'projects' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#folder"/></svg><span>Projects</span></a>
+    <a href="/Tasks" class="nav-item {% if current_section == 'tasks' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#check"/></svg><span>Tasks</span></a>
+
+    <span class="nav-label nav-label-spaced">Clients</span>
+    <a href="/Clients" class="nav-item {% if current_section == 'clients' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#users"/></svg><span>Clients</span></a>
+    <a href="/Engagements" class="nav-item {% if current_section == 'engagements' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#briefcase"/></svg><span>Engagements</span></a>
+
+    {% if current_user.role in ['Developer', 'Outreach Manager'] %}
+    <span class="nav-label nav-label-spaced">Finance</span>
+    <a href="/Finance" class="nav-item {% if current_section == 'finance' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#wallet"/></svg><span>Invoices & payments</span></a>
+    <a href="/Reports" class="nav-item {% if current_section == 'reports' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#pulse"/></svg><span>Reports</span></a>
+    {% endif %}
+
+    {% if current_user.role == 'Developer' %}
+    <span class="nav-label nav-label-spaced">Administration</span>
+    <a href="/Users" class="nav-item {% if current_section == 'team' %}active{% endif %}">
+      <svg><use href="/Static/Images/icons.svg#team"/></svg><span>Team</span>
+    </a>
+    {% endif %}
+    {% if current_user.role == 'Developer' %}<a href="/Settings" class="nav-item {% if current_section == 'settings' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#settings"/></svg><span>Settings</span></a>{% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="workspace-card">
+      <div><span>{{ business_name[:2]|upper }}</span><p><strong>{{ business_name }}</strong><small>Private workspace</small></p></div>
+      <svg><use href="/Static/Images/icons.svg#chevron"/></svg>
+    </div>
+    <div class="sidebar-pulse"><span></span><div><strong>All systems operational</strong><small>Workspace is up to date</small></div></div>
+  </div>
+</aside>

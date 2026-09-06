@@ -1,0 +1,25 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="page-intro users-intro">
+  <div><span class="section-kicker">People & access</span><h2>Your team</h2><p>Manage who can access WorkDesk and what they’re allowed to do.</p></div>
+  <a class="button button-primary" href="/Users/New" hx-get="/Users/New" hx-target="#modal-root" hx-swap="innerHTML"><svg><use href="/Static/Images/icons.svg#plus"/></svg>Add team member</a>
+</section>
+
+<section class="mini-stats">
+  <div><span class="mini-icon green"><svg><use href="/Static/Images/icons.svg#team"/></svg></span><p><strong>{{ total_count }}</strong><span>Total members</span></p></div>
+  <div><span class="mini-icon blue"><svg><use href="/Static/Images/icons.svg#pulse"/></svg></span><p><strong>{{ active_count }}</strong><span>Active now</span></p></div>
+  <div><span class="mini-icon amber"><svg><use href="/Static/Images/icons.svg#shield"/></svg></span><p><strong>{{ admin_count }}</strong><span>Developers</span></p></div>
+</section>
+
+<section class="panel users-panel">
+  <header class="table-toolbar">
+    <div><h3>Team directory</h3><span>{{ users|length }} of {{ total_count }} workspace members</span></div>
+    <form method="get" action="/Users" class="directory-filters" hx-get="/Users" hx-trigger="change, submit" hx-target="#users-table-region" hx-push-url="true">
+      <label class="search-box"><svg><use href="/Static/Images/icons.svg#search"/></svg><input type="search" name="q" value="{{ query }}" placeholder="Search people…" aria-label="Search team" hx-get="/Users" hx-trigger="input changed delay:300ms, search" hx-include="closest form" hx-target="#users-table-region" hx-push-url="true"></label>
+      <label class="filter-select"><span class="sr-only">Filter by role</span><select name="role" aria-label="Filter by role"><option value="">All roles</option>{% for role in roles %}<option value="{{ role.value }}" {% if selected_role == role.value %}selected{% endif %}>{{ role.value }}</option>{% endfor %}</select><svg><use href="/Static/Images/icons.svg#chevron"/></svg></label>
+      <label class="filter-select"><span class="sr-only">Filter by status</span><select name="status" aria-label="Filter by status"><option value="">Any status</option><option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option><option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option></select><svg><use href="/Static/Images/icons.svg#chevron"/></svg></label>
+    </form>
+  </header>
+  <div id="users-table-region">{% include "Users/_Table.html" %}</div>
+</section>
+{% endblock %}

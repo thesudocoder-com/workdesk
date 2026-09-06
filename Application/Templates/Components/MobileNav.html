@@ -1,0 +1,23 @@
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <a href="/Dashboard" class="mobile-nav-item {% if current_section == 'dashboard' %}active{% endif %}" {% if current_section == 'dashboard' %}aria-current="page"{% endif %}>
+    <svg><use href="/Static/Images/icons.svg#home"/></svg><span>Today</span>
+  </a>
+  <a href="/Projects" class="mobile-nav-item {% if current_section == 'projects' %}active{% endif %}" {% if current_section == 'projects' %}aria-current="page"{% endif %}>
+    <svg><use href="/Static/Images/icons.svg#folder"/></svg><span>Projects</span>
+  </a>
+  <a href="/Tasks" class="mobile-nav-item {% if current_section == 'tasks' %}active{% endif %}" {% if current_section == 'tasks' %}aria-current="page"{% endif %}>
+    <svg><use href="/Static/Images/icons.svg#check"/></svg><span>Tasks</span>
+  </a>
+  {% if current_user.role in ['Developer', 'Outreach Manager'] %}
+  <a href="/Finance" class="mobile-nav-item {% if current_section == 'finance' %}active{% endif %}" {% if current_section == 'finance' %}aria-current="page"{% endif %}>
+    <svg><use href="/Static/Images/icons.svg#wallet"/></svg><span>Finance</span>
+  </a>
+  {% else %}
+  <a href="/Clients" class="mobile-nav-item {% if current_section == 'clients' %}active{% endif %}" {% if current_section == 'clients' %}aria-current="page"{% endif %}>
+    <svg><use href="/Static/Images/icons.svg#users"/></svg><span>Clients</span>
+  </a>
+  {% endif %}
+  <button type="button" class="mobile-nav-item" aria-label="Open workspace menu" data-sidebar-open>
+    <svg><use href="/Static/Images/icons.svg#menu"/></svg><span>Menu</span>
+  </button>
+</nav>

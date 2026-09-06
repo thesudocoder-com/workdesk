@@ -1,0 +1,1 @@
+<div class="task-records">{% for task in tasks %}{% include "Tasks/_Row.html" %}{% else %}<div class="empty-state"><span class="empty-icon"><svg><use href="/Static/Images/icons.svg#check"/></svg></span><strong>Your queue is clear</strong><span>Create a task or change the current filters.</span></div>{% endfor %}</div>

@@ -1,0 +1,5 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<div class="form-page-head"><a href="{{ cancel_url }}" class="back-link"><svg><use href="/Static/Images/icons.svg#arrow-left"/></svg>Back</a></div>
+<section class="panel standalone-form">{% set standalone = true %}{% include "Common/_Form.html" %}</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WorkDesk">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#18372e">
+  <title>{% block title %}Sign in{% endblock %} · WorkDesk</title>
+  <meta name="description" content="WorkDesk keeps internal projects, people, tasks and payments in focus.">
+  <meta property="og:title" content="WorkDesk">
+  <meta property="og:description" content="Internal operations, in focus.">
+  <meta property="og:image" content="{{ social_image_url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WorkDesk">
+  <meta name="twitter:description" content="Internal operations, in focus.">
+  <meta name="twitter:image" content="{{ social_image_url }}">
+  <link rel="icon" href="/Static/Images/Favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/Static/CSS/App.css">
+  <link rel="stylesheet" href="/Static/CSS/Refined.css">
+  <link rel="stylesheet" href="/Static/CSS/Usability.css">
+</head>
+<body class="auth-body">
+  {% block content %}{% endblock %}
+  <script src="/Static/JS/App.js" defer></script>
+</body>
+</html>

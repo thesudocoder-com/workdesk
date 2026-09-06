@@ -1,0 +1,17 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="detail-hero">
+  <div class="detail-identity">
+    <span class="entity-avatar large"><svg><use href="/Static/Images/icons.svg#folder"/></svg></span>
+    <div><span class="section-kicker">{{ project.engagement.client.display_name }} · {{ project.engagement.name }}</span><h2>{{ project.name }}</h2><p>{{ project.status }} · {{ project.priority }} priority · Owner {{ project.owner.name }}</p></div>
+  </div>
+  <div class="detail-actions">
+    {% if current_user.role == 'Developer' and project.status != 'Completed' %}
+    <form method="post" action="/Projects/{{ project.id }}/Complete" onsubmit="return confirm('Complete this project? Every task must already be done.')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-secondary" type="submit"><svg><use href="/Static/Images/icons.svg#check"/></svg>Complete project</button></form>
+    {% endif %}
+    <a class="button button-primary" href="/Tasks/New?project_id={{ project.id }}" hx-get="/Tasks/New?project_id={{ project.id }}" hx-target="#modal-root"><svg><use href="/Static/Images/icons.svg#plus"/></svg>Add task</a>
+  </div>
+</section>
+<section class="project-progress-card"><div><span>Project progress</span><strong>{{ project.progress }}%</strong></div><div class="progress-track light"><i style="width:{{ project.progress }}%"></i></div><p>{{ project.tasks|selectattr('status','equalto','Done')|list|length }} of {{ project.tasks|length }} tasks complete · Due {{ project.due_date.strftime('%b %d, %Y') if project.due_date else 'date not set' }}</p></section>
+<section class="panel data-panel"><header class="data-toolbar"><div><h3>Project tasks</h3><span>{{ project.tasks|length }} tasks</span></div></header><div class="task-records">{% for task in project.tasks %}{% include "Tasks/_Row.html" %}{% else %}<div class="inline-empty roomy">No tasks yet. Add the first next step.</div>{% endfor %}</div></section>
+{% endblock %}

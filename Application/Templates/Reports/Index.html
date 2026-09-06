@@ -1,0 +1,39 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="page-intro">
+  <div><span class="section-kicker">Business performance</span><h2>Reports</h2><p>A current view of billed work, collections, costs, and active delivery.</p></div>
+</section>
+<section class="finance-kpis report-kpis" aria-label="Financial summary">
+  <article><span>Total billed</span><strong>{{ total_billed|money(currency) }}</strong><small>Excludes cancelled invoices</small></article>
+  <article><span>Total collected</span><strong>{{ total_collected|money(currency) }}</strong><small>All recorded payments</small></article>
+  <article class="{% if outstanding > 0 %}danger{% endif %}"><span>Accounts receivable</span><strong>{{ outstanding|money(currency) }}</strong><small>{{ invoices|selectattr('outstanding', 'gt', 0)|list|length }} invoices with a balance</small></article>
+  <article><span>Total expenses</span><strong>{{ total_expenses|money(currency) }}</strong><small>All recorded operating costs</small></article>
+</section>
+<section class="report-summary" aria-label="Delivery summary">
+  <div><strong>{{ active_projects }}</strong><span>Active projects</span></div>
+  <div><strong>{{ payments|rejectattr('is_void')|list|length }}</strong><span>Payments recorded</span></div>
+  <div><strong>{{ overdue|money(currency) }}</strong><span>Overdue balance</span></div>
+</section>
+<section class="report-grid">
+  <article class="panel report-card">
+    <header class="panel-header"><div><span class="panel-kicker">Cash in</span><h3>Revenue by client</h3></div></header>
+    <div class="rank-list">
+      {% for item in revenue_by_client %}
+      <div class="rank-row"><span class="rank-number">{{ loop.index }}</span><div class="rank-copy"><strong>{{ item.name }}</strong><small>{{ item.value|money(currency) }}</small></div><div class="rank-bar" aria-label="{{ item.percent }} percent of top client"><i style="width:{{ item.percent }}%"></i></div></div>
+      {% else %}
+      <div class="empty-state compact-empty"><span class="empty-icon"><svg><use href="/Static/Images/icons.svg#wallet"/></svg></span><strong>No collected revenue yet</strong><span>Client revenue appears after a payment is recorded.</span><a class="button button-secondary" href="/Finance">Open finance</a></div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="panel report-card">
+    <header class="panel-header"><div><span class="panel-kicker">Cash out</span><h3>Expenses by category</h3></div></header>
+    <div class="rank-list">
+      {% for item in expense_by_category %}
+      <div class="rank-row"><span class="rank-number">{{ loop.index }}</span><div class="rank-copy"><strong>{{ item.name }}</strong><small>{{ item.value|money(currency) }}</small></div><div class="rank-bar coral" aria-label="{{ item.percent }} percent of top category"><i style="width:{{ item.percent }}%"></i></div></div>
+      {% else %}
+      <div class="empty-state compact-empty"><span class="empty-icon"><svg><use href="/Static/Images/icons.svg#wallet"/></svg></span><strong>No expenses recorded</strong><span>Cost categories appear after the first expense is added.</span><a class="button button-secondary" href="/Finance/Expenses/New">Add expense</a></div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}

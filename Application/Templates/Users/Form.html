@@ -1,0 +1,5 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="page-intro"><div><span class="section-kicker">People & access</span><h2>{{ 'Reset password' if mode == 'reset' else 'Add team member' }}</h2><p>{{ 'Set a new temporary password for this account.' if mode == 'reset' else 'Create a secure account and choose its access level.' }}</p></div></section>
+<section class="panel standalone-form">{% set standalone = true %}{% include "Users/_Form.html" %}</section>
+{% endblock %}
