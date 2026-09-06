@@ -41,7 +41,7 @@ class Invoice(Base):
     tax_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=ZERO)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     currency: Mapped[str] = mapped_column(String(3), default=DEFAULT_CURRENCY)
-    status: Mapped[str] = mapped_column(String(24), default=InvoiceStatus.DRAFT.value, index=True)
+    status: Mapped[str] = mapped_column(String(24), default=InvoiceStatus.SENT.value, index=True)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)

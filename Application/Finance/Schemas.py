@@ -21,7 +21,7 @@ class InvoiceCreate(BaseModel):
     due_date: date
     subtotal: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
     tax_amount: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=14, decimal_places=2)
-    status: InvoiceStatus = InvoiceStatus.DRAFT
+    status: InvoiceStatus = InvoiceStatus.SENT
     notes: str | None = Field(default=None, max_length=4000)
 
     @model_validator(mode="after")

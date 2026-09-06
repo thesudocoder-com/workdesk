@@ -12,7 +12,7 @@ class FinanceRepository:
         return list(session.scalars(statement))
 
     def invoice(self, session: Session, invoice_id: int) -> Invoice | None:
-        return session.scalar(select(Invoice).where(Invoice.id == invoice_id).options(selectinload(Invoice.client), selectinload(Invoice.engagement), selectinload(Invoice.payments)))
+        return session.scalar(select(Invoice).where(Invoice.id == invoice_id).options(selectinload(Invoice.client), selectinload(Invoice.engagement), selectinload(Invoice.payments), selectinload(Invoice.milestone)))
 
     def milestones(self, session: Session, engagement_id: int | None = None) -> list[PaymentMilestone]:
         statement = select(PaymentMilestone).options(selectinload(PaymentMilestone.engagement)).order_by(PaymentMilestone.due_date)

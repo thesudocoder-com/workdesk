@@ -24,3 +24,22 @@ class EngagementCreate(BaseModel):
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValueError("End date must be after the start date.")
         return self
+
+
+class EngagementUpdate(BaseModel):
+    client_id: int
+    name: str = Field(min_length=2, max_length=180)
+    type: EngagementType
+    description: str | None = Field(default=None, max_length=4000)
+    contract_value: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+    billing_frequency: BillingFrequency = BillingFrequency.ONE_TIME
+    start_date: date | None = None
+    end_date: date | None = None
+    owner_id: int
+    status: EngagementStatus = EngagementStatus.ACTIVE
+
+    @model_validator(mode="after")
+    def dates_are_ordered(self):
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValueError("End date must be after the start date.")
+        return self

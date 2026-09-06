@@ -30,7 +30,6 @@ def invoice_fields() -> list[dict]:
         {"name": "due_date", "label": "Due date", "type": "date", "required": True},
         {"name": "subtotal", "label": f"Subtotal ({currency})", "type": "number", "step": "0.01", "required": True},
         {"name": "tax_amount", "label": f"Tax amount ({currency})", "type": "number", "step": "0.01", "required": True},
-        {"name": "status", "label": "Status", "type": "select", "options": [InvoiceStatus.DRAFT.value, InvoiceStatus.SENT.value], "required": True},
         {"name": "notes", "label": "Invoice notes", "type": "textarea", "required": False, "wide": True},
     ]
 
@@ -104,7 +103,7 @@ class FinanceController(Controller):
         today = today_toronto()
         workspace = get_workspace()
         engagements = EngagementService().list(status="Active")
-        context=form_context(request,title="New invoice",subtitle=f"Issue an invoice in {workspace.currency}. Tax remains flexible.",section="finance",action="/Finance/Invoices",cancel_url=f"/Engagements/{engagement_id}" if engagement_id else "/Finance",fields=invoice_fields(),values={"engagement_id":engagement_id or "","issue_date":today.isoformat(),"due_date":(today + timedelta(days=workspace.payment_terms_days)).isoformat(),"tax_amount":"0.00","status":InvoiceStatus.DRAFT.value},prerequisite=None if engagements else {"title":"Create an active engagement first","message":"Invoices must be tied to active client work.","url":"/Projects/New","action":"Start guided setup"})
+        context=form_context(request,title="New invoice",subtitle=f"Issue an invoice in {workspace.currency}. Tax remains flexible.",section="finance",action="/Finance/Invoices",cancel_url=f"/Engagements/{engagement_id}" if engagement_id else "/Finance",fields=invoice_fields(),values={"engagement_id":engagement_id or "","issue_date":today.isoformat(),"due_date":(today + timedelta(days=workspace.payment_terms_days)).isoformat(),"tax_amount":"0.00","status":InvoiceStatus.SENT.value},prerequisite=None if engagements else {"title":"Create an active engagement first","message":"Invoices must be tied to active client work.","url":"/Projects/New","action":"Start guided setup"})
         return Template(form_template(request),context=context)
 
     @post("/Invoices")
@@ -121,6 +120,19 @@ class FinanceController(Controller):
             return Template(form_template(request),context=form_context(request,title="New invoice",subtitle="Please correct the highlighted fields.",section="finance",action="/Finance/Invoices",cancel_url="/Finance",fields=invoice_fields(),values=values,errors=errors),status_code=422)
         request.session["flash"]="Invoice created."
         return redirect_after(request,"/Finance")
+
+    @post("/Invoices/{invoice_id:int}/Delete")
+    async def delete_invoice(self, request: Request, invoice_id: FromPath[int]) -> Redirect | Response:
+        form = await request.form()
+        if not valid_csrf_token(request.session, form.get("csrf_token")):
+            request.session["error"] = "This form expired. Please refresh and try again."
+            return redirect_after(request, "/Finance")
+        try:
+            FinanceService().delete_invoice(invoice_id, request.user.id)
+            request.session["flash"] = "Invoice deleted."
+        except ValueError as exc:
+            request.session["error"] = str(exc)
+        return redirect_after(request, "/Finance")
 
     @get("/Invoices/{invoice_id:int}")
     async def invoice_detail(self, request: Request, invoice_id: FromPath[int]) -> Template | Redirect:

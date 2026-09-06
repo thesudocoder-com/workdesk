@@ -1034,6 +1034,18 @@ a.nav-item:hover svg {
   color: var(--ink);
 }
 
+.button-danger {
+  color: #c92a2a;
+  background: var(--paper);
+  border-color: #ffc9c9;
+}
+
+.button-danger:hover {
+  background: #fff5f5;
+  border-color: #ffa8a8;
+  color: #a61e1e;
+}
+
 .button-wide {
   width: 100%;
   min-height: 48px;

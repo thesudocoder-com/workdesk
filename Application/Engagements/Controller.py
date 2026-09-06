@@ -1,6 +1,6 @@
 from litestar import Controller, Request, get, post
 from litestar.params import FromPath, FromQuery
-from litestar.response import Redirect, Template
+from litestar.response import Redirect, Response, Template
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
@@ -12,7 +12,7 @@ from Application.Common.Forms import clean_form, form_errors
 from Application.Common.Views import form_context, page_context, redirect_after
 from Application.Users.Service import UserService
 from Application.Settings.Service import get_workspace
-from .Schemas import EngagementCreate
+from .Schemas import EngagementCreate, EngagementUpdate
 from .Service import EngagementService
 
 
@@ -70,3 +70,44 @@ class EngagementsController(Controller):
         if not item: request.session["error"]="Engagement not found."; return Redirect("/Engagements")
         collected=sum((invoice.amount_paid for invoice in item.invoices),0); outstanding=sum((invoice.outstanding for invoice in item.invoices),0)
         return Template("Engagements/Detail.html",context={**page_context(request,item.name,"engagements","Engagement"),"engagement":item,"collected":collected,"outstanding":outstanding})
+
+    @get("/{engagement_id:int}/Edit", guards=[outreach_or_developer])
+    async def edit(self, request: Request, engagement_id: FromPath[int]) -> Template | Redirect:
+        item = EngagementService().get(engagement_id)
+        if not item:
+            return Redirect("/Engagements")
+        values = {field["name"]: getattr(item, field["name"], "") or "" for field in engagement_fields()}
+        context = form_context(request, title="Edit engagement", subtitle=f"Update {item.name}'s details.", section="engagements", action=f"/Engagements/{item.id}/Edit", cancel_url=f"/Engagements/{item.id}", fields=engagement_fields(), values=values)
+        return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context)
+
+    @post("/{engagement_id:int}/Edit", guards=[outreach_or_developer])
+    async def update(self, request: Request, engagement_id: FromPath[int]) -> Template | Redirect:
+        form = await request.form(); values = dict(form); errors = {}
+        if not valid_csrf_token(request.session, form.get("csrf_token")): errors["form"] = "This form expired."
+        try: data = EngagementUpdate.model_validate(clean_form(form))
+        except ValidationError as exc: errors.update(form_errors(exc)); data = None
+        if errors:
+            context = form_context(request, title="Edit engagement", subtitle="Correct the highlighted fields.", section="engagements", action=f"/Engagements/{engagement_id}/Edit", cancel_url=f"/Engagements/{engagement_id}", fields=engagement_fields(), values=values, errors=errors)
+            return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context, status_code=422)
+        try:
+            EngagementService().update(engagement_id, data, request.user.id)
+        except (ValueError, IntegrityError) as exc:
+            errors["form"] = str(exc) if isinstance(exc, ValueError) else "A selected record changed. Refresh and try again."
+            context = form_context(request, title="Edit engagement", subtitle="Correct the highlighted fields.", section="engagements", action=f"/Engagements/{engagement_id}/Edit", cancel_url=f"/Engagements/{engagement_id}", fields=engagement_fields(), values=values, errors=errors)
+            return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context, status_code=422)
+        request.session["flash"] = "Engagement updated."
+        return redirect_after(request, f"/Engagements/{engagement_id}")
+
+    @post("/{engagement_id:int}/Delete", guards=[outreach_or_developer])
+    async def delete(self, request: Request, engagement_id: FromPath[int]) -> Redirect | Response:
+        form = await request.form()
+        if not valid_csrf_token(request.session, form.get("csrf_token")):
+            request.session["error"] = "This form expired. Please refresh and try again."
+            return redirect_after(request, "/Engagements")
+        try:
+            EngagementService().delete(engagement_id, request.user.id)
+            request.session["flash"] = "Engagement deleted."
+        except ValueError as exc:
+            request.session["error"] = str(exc)
+        return redirect_after(request, "/Engagements")
+

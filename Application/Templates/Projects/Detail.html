@@ -6,10 +6,16 @@
     <div><span class="section-kicker">{{ project.engagement.client.display_name }} · {{ project.engagement.name }}</span><h2>{{ project.name }}</h2><p>{{ project.status }} · {{ project.priority }} priority · Owner {{ project.owner.name }}</p></div>
   </div>
   <div class="detail-actions">
+    {% if current_user.role in ['Developer','Outreach Manager'] %}
+    <a class="button button-ghost" href="/Projects/{{ project.id }}/Edit" hx-get="/Projects/{{ project.id }}/Edit" hx-target="#modal-root">Edit</a>
+    {% endif %}
     {% if current_user.role == 'Developer' and project.status != 'Completed' %}
     <form method="post" action="/Projects/{{ project.id }}/Complete" onsubmit="return confirm('Complete this project? Every task must already be done.')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-secondary" type="submit"><svg><use href="/Static/Images/icons.svg#check"/></svg>Complete project</button></form>
     {% endif %}
     <a class="button button-primary" href="/Tasks/New?project_id={{ project.id }}" hx-get="/Tasks/New?project_id={{ project.id }}" hx-target="#modal-root"><svg><use href="/Static/Images/icons.svg#plus"/></svg>Add task</a>
+    {% if current_user.role in ['Developer','Outreach Manager'] %}
+    <form method="post" action="/Projects/{{ project.id }}/Delete" style="display:inline-block;margin:0;" onsubmit="return confirm('Are you sure you want to delete project {{ project.name }}?');"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-danger" type="submit"><svg><use href="/Static/Images/icons.svg#trash"/></svg>Delete project</button></form>
+    {% endif %}
   </div>
 </section>
 <section class="project-progress-card"><div><span>Project progress</span><strong>{{ project.progress }}%</strong></div><div class="progress-track light"><i style="width:{{ project.progress }}%"></i></div><p>{{ project.tasks|selectattr('status','equalto','Done')|list|length }} of {{ project.tasks|length }} tasks complete · Due {{ project.due_date.strftime('%b %d, %Y') if project.due_date else 'date not set' }}</p></section>

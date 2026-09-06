@@ -1,6 +1,6 @@
 from litestar import Controller, Request, get, post
 from litestar.params import FromPath, FromQuery
-from litestar.response import Redirect, Template
+from litestar.response import Redirect, Response, Template
 from pydantic import ValidationError
 
 from Application.Authentication.Guards import outreach_or_developer
@@ -86,3 +86,16 @@ class ClientsController(Controller):
             return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context, status_code=422)
         ClientService().update(client_id, data, request.user.id); request.session["flash"] = "Client updated."
         return redirect_after(request, f"/Clients/{client_id}")
+
+    @post("/{client_id:int}/Delete", guards=[outreach_or_developer])
+    async def delete(self, request: Request, client_id: FromPath[int]) -> Redirect | Response:
+        form = await request.form()
+        if not valid_csrf_token(request.session, form.get("csrf_token")):
+            request.session["error"] = "This form expired. Please refresh and try again."
+            return redirect_after(request, "/Clients")
+        try:
+            ClientService().delete(client_id, request.user.id)
+            request.session["flash"] = "Client deleted."
+        except ValueError as exc:
+            request.session["error"] = str(exc)
+        return redirect_after(request, "/Clients")

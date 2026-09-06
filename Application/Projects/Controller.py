@@ -1,6 +1,6 @@
 from litestar import Controller, Request, get, post
 from litestar.params import FromPath, FromQuery
-from litestar.response import Redirect, Template
+from litestar.response import Redirect, Response, Template
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
@@ -16,11 +16,11 @@ from Application.Engagements.Schemas import EngagementCreate
 from Application.Common.Enums import BillingFrequency, EngagementType
 from Application.Settings.Service import get_workspace
 from Application.Users.Service import UserService
-from .Schemas import ProjectCreate
+from .Schemas import ProjectCreate, ProjectUpdate
 from .Service import ProjectService
 
 
-def project_fields() -> list[dict]:
+def project_fields(include_all_statuses: bool = True) -> list[dict]:
     engagements = EngagementService().list()
     active_engagements = [e for e in engagements if e.status == EngagementStatus.ACTIVE.value]
 
@@ -31,6 +31,7 @@ def project_fields() -> list[dict]:
 
     users = [u for u in UserService().list_users() if u.is_active]
     owner_options = [(u.id, u.name) for u in users]
+    status_options = [x.value for x in ProjectStatus] if include_all_statuses else [x.value for x in ProjectStatus if x not in {ProjectStatus.COMPLETED, ProjectStatus.CANCELLED}]
 
     return [
         {
@@ -60,7 +61,7 @@ def project_fields() -> list[dict]:
             "name": "status",
             "label": "Status",
             "type": "select",
-            "options": [x.value for x in ProjectStatus if x not in {ProjectStatus.COMPLETED, ProjectStatus.CANCELLED}],
+            "options": status_options,
             "required": True,
         },
         {
@@ -195,6 +196,46 @@ class ProjectsController(Controller):
         from Application.Common.Time import today_toronto
         return Template("Projects/Detail.html",context={**page_context(request,project.name,"projects","Project workspace"),"project":project,"today":today_toronto(),"hide_task_project":True})
 
+    @get("/{project_id:int}/Edit", guards=[outreach_or_developer])
+    async def edit(self, request: Request, project_id: FromPath[int]) -> Template | Redirect:
+        project = ProjectService().get(project_id)
+        if not project:
+            return Redirect("/Projects")
+        values = {field["name"]: getattr(project, field["name"], "") or "" for field in project_fields(include_all_statuses=True)}
+        context = form_context(request, title="Edit project", subtitle=f"Update {project.name}'s details.", section="projects", action=f"/Projects/{project.id}/Edit", cancel_url=f"/Projects/{project.id}", fields=project_fields(include_all_statuses=True), values=values)
+        return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context)
+
+    @post("/{project_id:int}/Edit", guards=[outreach_or_developer])
+    async def update(self, request: Request, project_id: FromPath[int]) -> Template | Redirect:
+        form = await request.form(); values = dict(form); errors = {}
+        if not valid_csrf_token(request.session, form.get("csrf_token")): errors["form"] = "This form expired."
+        try: data = ProjectUpdate.model_validate(clean_form(form))
+        except ValidationError as exc: errors.update(form_errors(exc)); data = None
+        if errors:
+            context = form_context(request, title="Edit project", subtitle="Correct the highlighted fields.", section="projects", action=f"/Projects/{project_id}/Edit", cancel_url=f"/Projects/{project_id}", fields=project_fields(include_all_statuses=True), values=values, errors=errors)
+            return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context, status_code=422)
+        try:
+            ProjectService().update(project_id, data, request.user.id)
+        except (ValueError, IntegrityError) as exc:
+            errors["form"] = str(exc) if isinstance(exc, ValueError) else "A selected record changed. Refresh and try again."
+            context = form_context(request, title="Edit project", subtitle="Correct the highlighted fields.", section="projects", action=f"/Projects/{project_id}/Edit", cancel_url=f"/Projects/{project_id}", fields=project_fields(include_all_statuses=True), values=values, errors=errors)
+            return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context, status_code=422)
+        request.session["flash"] = "Project updated."
+        return redirect_after(request, f"/Projects/{project_id}")
+
+    @post("/{project_id:int}/Delete", guards=[outreach_or_developer])
+    async def delete(self, request: Request, project_id: FromPath[int]) -> Redirect | Response:
+        form = await request.form()
+        if not valid_csrf_token(request.session, form.get("csrf_token")):
+            request.session["error"] = "This form expired. Please refresh and try again."
+            return redirect_after(request, "/Projects")
+        try:
+            ProjectService().delete(project_id, request.user.id)
+            request.session["flash"] = "Project deleted."
+        except ValueError as exc:
+            request.session["error"] = str(exc)
+        return redirect_after(request, "/Projects")
+
     @post("/{project_id:int}/Complete", guards=[developer_only])
     async def complete(self, request: Request, project_id: FromPath[int]) -> Redirect:
         form = await request.form()
@@ -207,3 +248,4 @@ class ProjectsController(Controller):
         except ValueError as exc:
             request.session["error"] = str(exc)
         return Redirect(f"/Projects/{project_id}", status_code=303)
+

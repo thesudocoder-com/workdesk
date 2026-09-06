@@ -57,8 +57,8 @@ class FinanceService:
 
     def create_invoice(self, data: InvoiceCreate, actor_id: int) -> Invoice:
         with session_scope() as session:
-            if data.status not in {InvoiceStatus.DRAFT, InvoiceStatus.SENT}:
-                raise ValueError("New invoices must be saved as Draft or Sent.")
+            if data.status != InvoiceStatus.SENT:
+                raise ValueError("New invoices must be saved as Sent.")
             engagement = session.get(Engagement, data.engagement_id)
             if not engagement or engagement.status != EngagementStatus.ACTIVE.value:
                 raise ValueError("Select an active engagement.")
@@ -71,6 +71,12 @@ class FinanceService:
                 .values(next_invoice_number=WorkspaceSettings.next_invoice_number + 1)
                 .returning(WorkspaceSettings.next_invoice_number)
             ) - 1
+            milestone = None
+            if data.payment_milestone_id:
+                milestone = session.get(PaymentMilestone, data.payment_milestone_id)
+                if not milestone or milestone.engagement_id != engagement.id or milestone.invoice:
+                    raise ValueError("Select an unused milestone from this engagement.")
+                milestone.status = MilestoneStatus.INVOICED.value
             invoice = Invoice(
                 **data.model_dump(),
                 client_id=engagement.client_id,
@@ -79,13 +85,29 @@ class FinanceService:
                 total=money(data.subtotal + data.tax_amount),
             )
             session.add(invoice); session.flush()
-            if invoice.payment_milestone_id:
-                milestone = session.get(PaymentMilestone, invoice.payment_milestone_id)
-                if not milestone or milestone.engagement_id != engagement.id or milestone.invoice:
-                    raise ValueError("Select an unused milestone from this engagement.")
-                milestone.status = MilestoneStatus.INVOICED.value
             ActivityService.record(session, actor_id, "Invoice", invoice.id, "created", f"created {invoice.invoice_number}")
             return invoice
+
+    def delete_invoice(self, invoice_id: int, actor_id: int) -> None:
+        with session_scope() as session:
+            invoice = self.repository.invoice(session, invoice_id)
+            if not invoice:
+                raise ValueError("Invoice not found.")
+            invoice_number = invoice.invoice_number
+            if invoice.milestone:
+                milestone = invoice.milestone
+                today = today_toronto()
+                if milestone.due_date and milestone.due_date < today:
+                    milestone.status = MilestoneStatus.DUE.value
+                else:
+                    milestone.status = MilestoneStatus.UPCOMING.value
+                invoice.milestone = None
+                invoice.payment_milestone_id = None
+            for payment in list(invoice.payments):
+                session.delete(payment)
+            session.delete(invoice)
+            session.flush()
+            ActivityService.record(session, actor_id, "Invoice", invoice_id, "deleted", f"deleted invoice {invoice_number}")
 
     def record_payment(self, data: PaymentCreate, actor_id: int) -> Payment:
         with session_scope() as session:

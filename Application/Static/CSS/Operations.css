@@ -334,6 +334,15 @@
   color: var(--ink);
 }
 
+.row-menu a.danger, .row-menu button.danger {
+  color: #c92a2a;
+}
+
+.row-menu a.danger:hover, .row-menu button.danger:hover {
+  background: #fff5f5;
+  color: #a61e1e;
+}
+
 .row-menu svg {
   width: 16px;
   height: 16px;
