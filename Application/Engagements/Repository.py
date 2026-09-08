@@ -1,7 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from Application.Finance.Models import Invoice
+from Application.Finance.Models import FixedFeeAgreement, Instalment, Invoice, PaymentAllocation
 from .Models import Engagement
 
 
@@ -15,4 +15,13 @@ class EngagementRepository:
         return list(session.scalars(statement))
 
     def get(self, session: Session, engagement_id: int) -> Engagement | None:
-        return session.scalar(select(Engagement).where(Engagement.id == engagement_id).options(selectinload(Engagement.client), selectinload(Engagement.owner), selectinload(Engagement.projects), selectinload(Engagement.milestones), selectinload(Engagement.invoices).selectinload(Invoice.payments)))
+        return session.scalar(select(Engagement).where(Engagement.id == engagement_id).options(
+            selectinload(Engagement.client), selectinload(Engagement.owner),
+            selectinload(Engagement.projects), selectinload(Engagement.milestones),
+            selectinload(Engagement.invoices).selectinload(Invoice.payments),
+            selectinload(Engagement.invoices).selectinload(Invoice.allocations).selectinload(PaymentAllocation.payment),
+            selectinload(Engagement.agreements).selectinload(FixedFeeAgreement.instalments),
+            selectinload(Engagement.agreements).selectinload(FixedFeeAgreement.instalments).selectinload(Instalment.invoice).selectinload(Invoice.payments),
+            selectinload(Engagement.agreements).selectinload(FixedFeeAgreement.instalments).selectinload(Instalment.invoice).selectinload(Invoice.allocations).selectinload(PaymentAllocation.payment),
+            selectinload(Engagement.recurring_services),
+        ))

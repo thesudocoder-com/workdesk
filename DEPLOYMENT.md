@@ -27,6 +27,7 @@ WORKDESK_SESSION_SECRET=...
 WORKDESK_SETUP_TOKEN=...
 WORKDESK_PUBLIC_URL=https://workdesk.example.com
 WORKDESK_SESSION_SECURE=true
+WORKDESK_FINANCE_V2_ENABLED=false
 ```
 
 Run migrations as the service account with `uv run alembic upgrade head`, then install:
@@ -56,10 +57,46 @@ Place nginx, Caddy, or another TLS reverse proxy in front of the loopback listen
 
 ## Upgrade and rollback
 
-Before each upgrade, stop writes and make a database backup. Pull or install the release, run
-`uv run alembic upgrade head`, then restart and check `/health`, login, and a static asset.
-Schema downgrades are intentionally not automatic. To roll back, stop the service, restore the
-pre-upgrade database backup, deploy the prior application release, and restart.
+Never make an arbitrary `git pull` responsible for a production data conversion. Select a
+tested release tag, stop writes, and verify a restorable database backup first. The financial
+upgrade is deliberately split into an additive schema migration and an explicit, idempotent
+data migration:
+
+```bash
+git fetch --tags
+git checkout <tested-release-tag>
+uv sync --frozen
+uv run pytest
+uv run alembic upgrade head
+uv run workdesk finance-migrate
+uv run workdesk finance-migrate --apply
+uv run workdesk finance-migrate --apply
+```
+
+The first finance command is a dry-run and prints counts without writing. The first `--apply`
+creates normalized contacts, agreements, instalments, recurring services, invoice lines, and
+payment allocations from unambiguous legacy data. The second `--apply` must report zero for
+every category. Ambiguous contact names and missing recurrence dates are recorded in
+`migration_reviews`; the migrator does not guess them.
+
+Restart and check `/health`, login, old client/project/invoice URLs, the Finance totals, and
+the Calendar agenda. Reconcile contracted, scheduled, invoiced, collected, and outstanding
+amounts before setting `WORKDESK_FINANCE_V2_ENABLED=true` for all users.
+
+The schema migration does not rename or remove legacy columns and its downgrade is
+intentionally non-destructive. The prior application can run against the additive schema. If
+an application rollback is insufficient, stop the service, preserve the failed database for
+diagnosis, restore the verified pre-upgrade backup, deploy the prior release, and restart.
+
+### Staging rehearsal checklist
+
+- Restore an anonymized production backup on a VM matching production.
+- Deploy the exact candidate commit and install only the lockfile.
+- Run schema migration, finance dry-run, apply, and the zero-change second apply.
+- Compare row counts and financial totals before and after migration.
+- Verify legacy routes plus client, engagement, finance, invoice, and calendar screens.
+- Exercise 360, 390, 430, and 768 px viewports.
+- Confirm logs, scheduled jobs, backup restore, and the rollback release.
 
 ## Backup and restore
 

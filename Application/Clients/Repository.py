@@ -6,7 +6,7 @@ from .Models import Client
 
 class ClientRepository:
     def list(self, session: Session, query: str = "", status: str = "") -> list[Client]:
-        statement = select(Client).options(selectinload(Client.engagements)).order_by(Client.name)
+        statement = select(Client).options(selectinload(Client.engagements), selectinload(Client.contacts)).order_by(Client.name)
         if query:
             term = f"%{query.lower().strip()}%"
             statement = statement.where(
@@ -20,5 +20,5 @@ class ClientRepository:
         return session.scalar(
             select(Client)
             .where(Client.id == client_id)
-            .options(selectinload(Client.engagements))
+            .options(selectinload(Client.engagements), selectinload(Client.contacts))
         )

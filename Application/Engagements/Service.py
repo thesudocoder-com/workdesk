@@ -2,8 +2,10 @@ from sqlalchemy import select
 
 from Application.Activity.Service import ActivityService
 from Application.Clients.Models import Client
-from Application.Common.Enums import ClientStatus
-from Application.Finance.Models import Expense, Invoice, Payment, PaymentMilestone
+from Application.Common.Enums import BillingFrequency, ClientStatus
+from Application.Finance.Models import (
+    Expense, FixedFeeAgreement, Invoice, Payment, PaymentMilestone, RecurringService,
+)
 from Application.Projects.Models import Project
 from Application.Settings.Models import WorkspaceSettings
 from Application.Tasks.Models import WorkTask
@@ -40,6 +42,16 @@ class EngagementService:
             item = Engagement(**data.model_dump(exclude={"currency"}), currency=workspace.currency)
             session.add(item)
             session.flush()
+            if item.contract_value > 0 and item.billing_frequency == BillingFrequency.ONE_TIME.value:
+                session.add(FixedFeeAgreement(engagement_id=item.id, name=item.name,
+                                              contract_value=item.contract_value, currency=item.currency,
+                                              legacy_source=f"engagement:{item.id}"))
+            elif item.contract_value > 0 and item.start_date:
+                session.add(RecurringService(engagement_id=item.id, name=item.name,
+                                             amount=item.contract_value, currency=item.currency,
+                                             frequency=item.billing_frequency, start_date=item.start_date,
+                                             next_billing_date=item.start_date, end_date=item.end_date,
+                                             legacy_source=f"engagement:{item.id}"))
             ActivityService.record(session, actor_id, "Engagement", item.id, "created", f"created engagement {item.name}")
             return item
 

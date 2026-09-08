@@ -1,0 +1,33 @@
+{% extends "Layouts/Base.html" %}
+{% block content %}
+<section class="page-intro calendar-intro">
+  <div><span class="section-kicker">Delivery meets billing</span><h2>Calendar</h2><p>Projects, instalments, invoices, and recurring services in one source-linked view.</p></div>
+  <a class="button button-secondary" href="/Calendar?month={{ today.strftime('%Y-%m') }}">Today</a>
+</section>
+<section class="panel calendar-shell">
+  <header class="calendar-toolbar">
+    <div class="calendar-navigation">
+      <a href="/Calendar?month={{ previous_month.strftime('%Y-%m') }}{{ query_suffix }}" aria-label="Previous month">‹</a>
+      <div><span>Schedule</span><h3>{{ selected_month.strftime('%B %Y') }}</h3></div>
+      <a href="/Calendar?month={{ next_month.strftime('%Y-%m') }}{{ query_suffix }}" aria-label="Next month">›</a>
+    </div>
+    <form class="calendar-filters" method="get">
+      <input type="hidden" name="month" value="{{ selected_month.strftime('%Y-%m') }}">
+      <select name="client_id" aria-label="Filter by client"><option value="">All clients</option>{% for item in clients %}<option value="{{ item.id }}" {% if selected_client == item.id %}selected{% endif %}>{{ item.display_name }}</option>{% endfor %}</select>
+      <select name="engagement_id" aria-label="Filter by engagement"><option value="">All engagements</option>{% for item in engagements %}<option value="{{ item.id }}" {% if selected_engagement == item.id %}selected{% endif %}>{{ item.client.display_name }} — {{ item.name }}</option>{% endfor %}</select>
+      <select name="project_id" aria-label="Filter by project"><option value="">All projects</option>{% for item in projects %}<option value="{{ item.id }}" {% if selected_project == item.id %}selected{% endif %}>{{ item.engagement.client.display_name }} — {{ item.name }}</option>{% endfor %}</select>
+      <button class="button button-primary compact" type="submit">Apply</button>
+    </form>
+    <div class="calendar-view-switch"><a class="{% if calendar_view == 'month' %}active{% endif %}" href="/Calendar?month={{ selected_month.strftime('%Y-%m') }}{{ query_suffix|replace('&view=month','') }}&view=month">Month</a><a class="{% if calendar_view == 'agenda' %}active{% endif %}" href="/Calendar?month={{ selected_month.strftime('%Y-%m') }}{{ query_suffix|replace('&view=agenda','') }}&view=agenda">Agenda</a></div>
+  </header>
+  <div class="calendar-legend"><span class="green">Project</span><span class="amber">Instalment</span><span class="coral">Invoice</span><span class="blue">Recurring</span></div>
+  {% if calendar_view == 'agenda' %}
+  <div class="calendar-agenda">{% for event in events %}<a href="{{ event.url }}" class="calendar-event"><time datetime="{{ event.date.isoformat() }}"><strong>{{ event.date.strftime('%d') }}</strong><span>{{ event.date.strftime('%b') }}</span></time><div><span class="calendar-kind {{ event.tone }}">{{ event.kind }}</span><strong>{{ event.title }}</strong><small>{{ event.client }} · {{ event.engagement }} · {{ event.meta }}</small></div></a>{% else %}<div class="inline-empty roomy">Nothing scheduled this month.</div>{% endfor %}</div>
+  {% else %}
+  <div class="month-scroll"><div class="month-calendar" role="grid">
+    <div class="month-weekdays" role="row">{% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span role="columnheader">{{ day }}</span>{% endfor %}</div>
+    <div class="month-grid">{% for week in calendar_weeks %}{% for day in week %}<section class="month-day {% if not day.in_month %}outside{% endif %} {% if day.is_today %}today{% endif %}" role="gridcell"><header><time datetime="{{ day.date.isoformat() }}">{{ day.date.day }}</time>{% if day.is_today %}<span>Today</span>{% endif %}</header><div>{% for event in day.events %}<a href="{{ event.url }}" class="month-event {{ event.tone }}" title="{{ event.client }} · {{ event.engagement }} · {{ event.meta }}"><i></i><span><strong>{{ event.title }}</strong><small>{{ event.meta }}</small></span></a>{% endfor %}</div></section>{% endfor %}{% endfor %}</div>
+  </div></div>
+  {% endif %}
+</section>
+{% endblock %}

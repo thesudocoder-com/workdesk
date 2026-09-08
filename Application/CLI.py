@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import os
 import sys
 
@@ -10,6 +11,7 @@ from Application.Users.Models import UserRole
 from Application.Users.Repository import UserRepository, initialize_database, session_scope
 from Application.Users.Schemas import UserCreate
 from Application.Users.Service import UserService
+from Application.Finance.Migration import migrate_legacy_finance
 
 
 ROLE_ALIASES = {
@@ -91,6 +93,12 @@ def reset_password(args: argparse.Namespace) -> None:
         print(f"Password reset for {user.email}.")
 
 
+def migrate_finance(args: argparse.Namespace) -> None:
+    with session_scope() as session:
+        report = migrate_legacy_finance(session, apply=args.apply)
+        print(json.dumps({"mode": "apply" if args.apply else "dry-run", **report.to_dict()}, indent=2))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="workdesk", description="WorkDesk administration CLI")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -116,6 +124,10 @@ def build_parser() -> argparse.ArgumentParser:
     reset.add_argument("--email", required=True)
     reset.add_argument("--password", help="Prefer the interactive prompt or WORKDESK_CLI_PASSWORD")
     reset.set_defaults(handler=reset_password)
+
+    finance = commands.add_parser("finance-migrate", help="Preview or apply the idempotent legacy finance migration")
+    finance.add_argument("--apply", action="store_true", help="Create normalized records (default is dry-run)")
+    finance.set_defaults(handler=migrate_finance)
     return parser
 
 

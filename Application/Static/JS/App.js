@@ -258,6 +258,22 @@
 
   initToasts();
 
+  // Keep the dashboard clock aligned with the workspace timezone.
+  const clock = document.querySelector("[data-workspace-clock]");
+  if (clock) {
+    const updateClock = () => {
+      try {
+        clock.textContent = new Intl.DateTimeFormat(undefined, {
+          timeZone: clock.dataset.timezone,
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(new Date());
+      } catch { /* The server-rendered time remains a safe fallback. */ }
+    };
+    updateClock();
+    window.setInterval(updateClock, 30000);
+  }
+
   // Full-page validation responses should announce the summary immediately.
   document.querySelector("[data-form-summary]")?.focus();
 })();

@@ -25,6 +25,7 @@ class Engagement(Base):
     end_date: Mapped[date | None] = mapped_column(Date)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     status: Mapped[str] = mapped_column(String(24), default=EngagementStatus.ACTIVE.value, index=True)
+    delivery_status: Mapped[str | None] = mapped_column(String(24), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
     client = relationship("Client", back_populates="engagements")
@@ -32,3 +33,5 @@ class Engagement(Base):
     projects = relationship("Project", back_populates="engagement")
     milestones = relationship("PaymentMilestone", back_populates="engagement")
     invoices = relationship("Invoice", back_populates="engagement")
+    agreements = relationship("FixedFeeAgreement", back_populates="engagement", cascade="all, delete-orphan", passive_deletes=True)
+    recurring_services = relationship("RecurringService", back_populates="engagement", cascade="all, delete-orphan", passive_deletes=True)

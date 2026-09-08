@@ -33,6 +33,31 @@ class BillingFrequency(StrEnum):
     CUSTOM = "Custom"
 
 
+class AgreementStatus(StrEnum):
+    DRAFT = "Draft"
+    ACTIVE = "Active"
+    COMPLETED = "Completed"
+    CANCELLED = "Cancelled"
+
+
+class RecurringStatus(StrEnum):
+    ACTIVE = "Active"
+    PAUSED = "Paused"
+    CANCELLED = "Cancelled"
+
+
+class BillingTiming(StrEnum):
+    ADVANCE = "Advance"
+    ARREARS = "Arrears"
+
+
+class OccurrenceStatus(StrEnum):
+    FORECAST = "Forecast"
+    READY = "Ready"
+    INVOICED = "Invoiced"
+    CANCELLED = "Cancelled"
+
+
 class ProjectStatus(StrEnum):
     PLANNING = "Planning"
     ACTIVE = "Active"

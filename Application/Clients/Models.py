@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from Application.Common.Enums import ClientStatus
@@ -14,6 +14,9 @@ class Client(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(160), index=True)
     company_name: Mapped[str | None] = mapped_column(String(180))
+    legal_name: Mapped[str | None] = mapped_column(String(180))
+    default_currency: Mapped[str] = mapped_column(String(3), default="CAD")
+    tax_identifiers: Mapped[str | None] = mapped_column(Text)
     primary_email: Mapped[str | None] = mapped_column(String(255), index=True)
     primary_phone: Mapped[str | None] = mapped_column(String(40))
     website: Mapped[str | None] = mapped_column(String(255))
@@ -28,6 +31,7 @@ class Client(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
     engagements = relationship("Engagement", back_populates="client")
+    contacts = relationship("Contact", back_populates="client", order_by="Contact.is_primary.desc(), Contact.name", cascade="all, delete-orphan", passive_deletes=True)
 
     @property
     def display_name(self) -> str:
@@ -36,3 +40,19 @@ class Client(Base):
     @property
     def initials(self) -> str:
         return "".join(part[0] for part in self.display_name.split()[:2]).upper()
+
+
+class Contact(Base):
+    __tablename__ = "contacts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160), index=True)
+    email: Mapped[str | None] = mapped_column(String(255), index=True)
+    phone: Mapped[str | None] = mapped_column(String(40))
+    role: Mapped[str | None] = mapped_column(String(100))
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    legacy_source: Mapped[str | None] = mapped_column(String(80), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+    client = relationship("Client", back_populates="contacts")

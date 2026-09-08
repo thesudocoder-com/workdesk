@@ -1,8 +1,9 @@
 # WorkDesk
 
 WorkDesk is a private, server-rendered operations desk for one small business. It connects
-clients, engagements, projects, tasks, milestones, invoices, payments, expenses, reports, and
-team access using Litestar, SQLAlchemy, Jinja, and a pinned local HTMX transport.
+client organizations and contacts to engagements, delivery projects, fixed-fee agreements,
+instalments, recurring services, invoices, payment allocations, expenses, a derived calendar,
+reports, and team access using Litestar, SQLAlchemy, Jinja, and a pinned local HTMX transport.
 
 ## Local first run
 
@@ -36,10 +37,25 @@ security remain environment configuration.
 Invoices can be printed from the browser or downloaded as private, on-demand PDF files. The
 PDF is generated from the current invoice and workspace settings and is not stored on disk.
 
+The normalized finance model is additive. Existing milestones, invoice fields, payment links,
+IDs, and routes remain available as compatibility surfaces. New writes also create invoice
+lines and payment allocations. Recurring billing dates create forecast occurrences; they do
+not become receivables until invoiced.
+
+Client workspaces group each engagement with its delivery projects, fixed-fee position, and
+recurring services. Project pages surface the linked engagement and provide a direct recurring
+service action. Recurring service pages support editing safe commercial fields, pausing,
+resuming, cancelling, and reviewing the forecast schedule without rewriting historical dates.
+The Calendar provides responsive month and agenda views with client, engagement, and project
+filters. The Dashboard clock shows the current local time for the workspace timezone rather
+than exposing its raw IANA identifier.
+
 ## Database and tests
 
 ```bash
 uv run alembic upgrade head
+uv run workdesk finance-migrate          # dry-run; never writes
+uv run workdesk finance-migrate --apply  # explicit, safe to rerun
 uv run pytest
 ```
 

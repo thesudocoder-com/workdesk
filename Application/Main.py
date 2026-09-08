@@ -17,6 +17,7 @@ from Application.Authentication.SetupController import SetupController
 from Application.Authentication.Security import get_csrf_token, session_auth
 from Application.Configurations import BASE_DIR, settings
 from Application.Dashboard.Controller import DashboardController
+from Application.Calendar.Controller import CalendarController
 from Application.Clients.Controller import ClientsController
 from Application.Engagements.Controller import EngagementsController
 from Application.Projects.Controller import ProjectsController
@@ -124,6 +125,7 @@ app = Litestar(
         AuthenticationController,
         AccountController,
         DashboardController,
+        CalendarController,
         ClientsController,
         EngagementsController,
         ProjectsController,

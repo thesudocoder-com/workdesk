@@ -25,6 +25,7 @@ class Settings:
     session_secure: bool = os.getenv("WORKDESK_SESSION_SECURE", "false").lower() == "true"
     public_url: str = os.getenv("WORKDESK_PUBLIC_URL", "http://localhost:8000").rstrip("/")
     setup_token: str = os.getenv("WORKDESK_SETUP_TOKEN", "development-setup-token")
+    finance_v2_enabled: bool = os.getenv("WORKDESK_FINANCE_V2_ENABLED", "true").lower() == "true"
 
     @property
     def is_development(self) -> bool:

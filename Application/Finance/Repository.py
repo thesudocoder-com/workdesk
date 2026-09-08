@@ -1,18 +1,18 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from .Models import Expense, Invoice, Payment, PaymentMilestone
+from .Models import Expense, Invoice, Payment, PaymentAllocation, PaymentMilestone
 
 
 class FinanceRepository:
     def invoices(self, session: Session, status: str = "") -> list[Invoice]:
-        statement = select(Invoice).options(selectinload(Invoice.client), selectinload(Invoice.engagement), selectinload(Invoice.payments)).order_by(Invoice.due_date.desc())
+        statement = select(Invoice).options(selectinload(Invoice.client), selectinload(Invoice.engagement), selectinload(Invoice.payments), selectinload(Invoice.allocations).selectinload(PaymentAllocation.payment)).order_by(Invoice.due_date.desc())
         if status:
             statement = statement.where(Invoice.status == status)
         return list(session.scalars(statement))
 
     def invoice(self, session: Session, invoice_id: int) -> Invoice | None:
-        return session.scalar(select(Invoice).where(Invoice.id == invoice_id).options(selectinload(Invoice.client), selectinload(Invoice.engagement), selectinload(Invoice.payments), selectinload(Invoice.milestone)))
+        return session.scalar(select(Invoice).where(Invoice.id == invoice_id).options(selectinload(Invoice.client), selectinload(Invoice.engagement), selectinload(Invoice.payments), selectinload(Invoice.allocations).selectinload(PaymentAllocation.payment), selectinload(Invoice.lines), selectinload(Invoice.milestone)))
 
     def milestones(self, session: Session, engagement_id: int | None = None) -> list[PaymentMilestone]:
         statement = select(PaymentMilestone).options(selectinload(PaymentMilestone.engagement)).order_by(PaymentMilestone.due_date)

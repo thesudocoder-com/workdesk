@@ -18,6 +18,7 @@
     <span class="nav-label nav-label-spaced">Work</span>
     <a href="/Projects" class="nav-item {% if current_section == 'projects' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#folder"/></svg><span>Projects</span></a>
     <a href="/Tasks" class="nav-item {% if current_section == 'tasks' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#check"/></svg><span>Tasks</span></a>
+    {% if finance_v2_enabled and current_user.role in ['Developer', 'Outreach Manager'] %}<a href="/Calendar" class="nav-item {% if current_section == 'calendar' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#calendar"/></svg><span>Calendar</span></a>{% endif %}
 
     <span class="nav-label nav-label-spaced">Clients</span>
     <a href="/Clients" class="nav-item {% if current_section == 'clients' %}active{% endif %}"><svg><use href="/Static/Images/icons.svg#users"/></svg><span>Clients</span></a>

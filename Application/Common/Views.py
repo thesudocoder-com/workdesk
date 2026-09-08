@@ -3,6 +3,7 @@ from litestar.response import Redirect, Response
 
 from Application.Authentication.Security import get_csrf_token
 from Application.Settings.Service import get_workspace
+from Application.Configurations import settings
 
 
 def page_context(request: Request, title: str, section: str, eyebrow: str = "WorkDesk") -> dict:
@@ -18,6 +19,7 @@ def page_context(request: Request, title: str, section: str, eyebrow: str = "Wor
         "workspace": workspace,
         "business_name": workspace.business_name if workspace else "WorkDesk",
         "currency": workspace.currency if workspace else "USD",
+        "finance_v2_enabled": settings.finance_v2_enabled,
     }
 
 

@@ -21,6 +21,7 @@ class DashboardController(Controller):
             context={
                 **page_context(request, "Today", "dashboard", now.strftime("%A, %d %B")),
                 "today_label": now.strftime("%A · %d %B").replace("· 0", "· "),
+                "local_time_label": now.strftime("%I:%M %p").lstrip("0"),
                 "greeting": greeting,
                 **DashboardService().get(
                     request.user.id,

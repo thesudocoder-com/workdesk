@@ -8,7 +8,10 @@ from sqlalchemy.exc import IntegrityError
 
 from Application.Authentication.Guards import outreach_or_developer
 from Application.Authentication.Security import valid_csrf_token
-from Application.Common.Enums import ExpenseCategory, InvoiceStatus, MilestoneStatus, PaymentMethod
+from Application.Common.Enums import (
+    AgreementStatus, BillingFrequency, BillingTiming, ExpenseCategory, InvoiceStatus,
+    MilestoneStatus, PaymentMethod, RecurringStatus,
+)
 from Application.Common.Forms import clean_form, form_errors
 from Application.Common.Money import format_currency
 from Application.Common.Time import business_timezone, today_toronto
@@ -16,7 +19,10 @@ from Application.Common.Views import form_context, page_context, redirect_after
 from Application.Settings.Service import get_workspace
 from Application.Engagements.Service import EngagementService
 from Application.Projects.Service import ProjectService
-from .Schemas import ExpenseCreate, InvoiceCreate, MilestoneCreate, PaymentCreate
+from .Schemas import (
+    AgreementCreate, ExpenseCreate, InstalmentCreate, InvoiceCreate, MilestoneCreate,
+    PaymentCreate, RecurringServiceCreate, RecurringServiceUpdate,
+)
 from .Service import FinanceService
 from .Pdf import build_invoice_pdf
 
@@ -66,6 +72,17 @@ def form_template(request: Request) -> str:
     return "Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html"
 
 
+def recurring_edit_fields(currency: str) -> list[dict]:
+    return [
+        {"name":"name","label":"Service name","type":"text","required":True,"wide":True},
+        {"name":"description","label":"Description","type":"textarea","required":False,"wide":True},
+        {"name":"amount","label":f"Amount ({currency})","type":"number","step":"0.01","required":True},
+        {"name":"end_date","label":"End date","type":"date","required":False},
+        {"name":"tax_rate","label":"Tax rate (%)","type":"number","step":"0.01","required":False},
+        {"name":"billing_timing","label":"Billing timing","type":"select","options":[x.value for x in BillingTiming],"required":True},
+    ]
+
+
 class FinanceController(Controller):
     path="/Finance"
     guards=[outreach_or_developer]
@@ -73,6 +90,141 @@ class FinanceController(Controller):
     @get()
     async def index(self,request:Request,status:FromQuery[str]="")->Template:
         return Template("Finance/Index.html",context={**page_context(request,"Finance","finance","Cash flow"),**FinanceService().overview(status),"selected_status":status,"statuses":list(InvoiceStatus)})
+
+    @get("/Agreements/New")
+    async def new_agreement(self, request: Request, engagement_id: FromQuery[int|None] = None) -> Template:
+        engagements = EngagementService().list(status="Active")
+        fields = [
+            {"name":"engagement_id","label":"Engagement","type":"select","options":[(e.id,f"{e.client.display_name} — {e.name}") for e in engagements],"required":True,"wide":True},
+            {"name":"name","label":"Agreement name","type":"text","required":True},
+            {"name":"contract_value","label":f"Contract value ({get_workspace().currency})","type":"number","step":"0.01","required":True},
+            {"name":"adjustment_amount","label":"Adjustment amount","type":"number","step":"0.01","required":False},
+            {"name":"adjustment_reason","label":"Adjustment reason","type":"text","required":False,"wide":True},
+            {"name":"status","label":"Status","type":"select","options":[x.value for x in AgreementStatus],"required":True},
+        ]
+        return Template(form_template(request), context=form_context(request,title="New fixed-fee agreement",subtitle="Contract value and instalments remain traceable separately.",section="finance",action="/Finance/Agreements",cancel_url=f"/Engagements/{engagement_id}" if engagement_id else "/Finance",fields=fields,values={"engagement_id":engagement_id or "","adjustment_amount":"0.00","status":AgreementStatus.ACTIVE.value}))
+
+    @post("/Agreements")
+    async def create_agreement(self, request: Request) -> Template | Redirect:
+        form=await request.form(); values=dict(form); errors={}
+        if not valid_csrf_token(request.session,form.get("csrf_token")): errors["form"]="This form expired."
+        try: data=AgreementCreate.model_validate(clean_form(form))
+        except ValidationError as exc: errors.update(form_errors(exc)); data=None
+        if not errors:
+            try: item=FinanceService().create_agreement(data,request.user.id)
+            except (ValueError,IntegrityError) as exc: errors["form"]=str(exc) if isinstance(exc,ValueError) else "The agreement could not be saved."
+        if errors:
+            request.session["error"]="Please correct the agreement details."
+            return Redirect(f"/Finance/Agreements/New?engagement_id={values.get('engagement_id','')}",status_code=303)
+        request.session["flash"]="Fixed-fee agreement added."
+        return redirect_after(request,f"/Engagements/{item.engagement_id}")
+
+    @get("/Instalments/New")
+    async def new_instalment(self, request: Request, agreement_id: FromQuery[int]) -> Template:
+        fields=[{"name":"agreement_id","label":"Agreement","type":"number","required":True},{"name":"name","label":"Instalment name","type":"text","required":True},{"name":"amount","label":f"Amount ({get_workspace().currency})","type":"number","step":"0.01","required":True},{"name":"due_date","label":"Due date","type":"date","required":False},{"name":"sequence","label":"Sequence","type":"number","required":False}]
+        return Template(form_template(request),context=form_context(request,title="New instalment",subtitle="The scheduled total cannot exceed the agreement value.",section="finance",action="/Finance/Instalments",cancel_url="/Finance",fields=fields,values={"agreement_id":agreement_id,"sequence":0}))
+
+    @post("/Instalments")
+    async def create_instalment(self, request: Request) -> Redirect:
+        form=await request.form()
+        if not valid_csrf_token(request.session,form.get("csrf_token")):
+            request.session["error"]="This form expired."; return Redirect("/Finance",status_code=303)
+        try:
+            item=FinanceService().add_instalment(InstalmentCreate.model_validate(clean_form(form)),request.user.id)
+        except (ValidationError,ValueError,IntegrityError) as exc:
+            request.session["error"]=str(exc); return Redirect("/Finance",status_code=303)
+        request.session["flash"]="Instalment added."
+        return Redirect(f"/Engagements/{item.agreement.engagement_id}",status_code=303)
+
+    @get("/Recurring/New")
+    async def new_recurring(self, request: Request, engagement_id: FromQuery[int|None] = None) -> Template:
+        engagements=EngagementService().list(status="Active")
+        fields=[{"name":"engagement_id","label":"Engagement","type":"select","options":[(e.id,f"{e.client.display_name} — {e.name}") for e in engagements],"required":True,"wide":True},{"name":"name","label":"Service name","type":"text","required":True},{"name":"description","label":"Description","type":"textarea","required":False,"wide":True},{"name":"amount","label":f"Amount ({get_workspace().currency})","type":"number","step":"0.01","required":True},{"name":"frequency","label":"Frequency","type":"select","options":[x.value for x in BillingFrequency if x != BillingFrequency.ONE_TIME],"required":True},{"name":"interval","label":"Billing interval","type":"number","required":True},{"name":"start_date","label":"Start date","type":"date","required":True},{"name":"end_date","label":"End date","type":"date","required":False},{"name":"tax_rate","label":"Tax rate (%)","type":"number","step":"0.01","required":False},{"name":"billing_timing","label":"Billing timing","type":"select","options":[x.value for x in BillingTiming],"required":True},{"name":"status","label":"Status","type":"select","options":[x.value for x in RecurringStatus],"required":True}]
+        values={"engagement_id":engagement_id or "","interval":1,"start_date":today_toronto().isoformat(),"tax_rate":"0.00","billing_timing":BillingTiming.ADVANCE.value,"status":RecurringStatus.ACTIVE.value}
+        return Template(form_template(request),context=form_context(request,title="New recurring service",subtitle="Future occurrences are forecast, never current debt.",section="finance",action="/Finance/Recurring",cancel_url=f"/Engagements/{engagement_id}" if engagement_id else "/Finance",fields=fields,values=values))
+
+    @post("/Recurring")
+    async def create_recurring(self, request: Request) -> Redirect:
+        form=await request.form()
+        if not valid_csrf_token(request.session,form.get("csrf_token")):
+            request.session["error"]="This form expired."; return Redirect("/Finance",status_code=303)
+        try:
+            item=FinanceService().create_recurring_service(RecurringServiceCreate.model_validate(clean_form(form)),request.user.id)
+        except (ValidationError,ValueError,IntegrityError) as exc:
+            request.session["error"]=str(exc); return Redirect("/Finance",status_code=303)
+        request.session["flash"]="Recurring service added."
+        return Redirect(f"/Engagements/{item.engagement_id}",status_code=303)
+
+    @get("/Recurring/{service_id:int}")
+    async def recurring_detail(self, request: Request, service_id: FromPath[int]) -> Template | Redirect:
+        item = FinanceService().get_recurring_service(service_id)
+        if not item:
+            request.session["error"] = "Recurring service not found."
+            return Redirect("/Finance", status_code=303)
+        return Template("Finance/Recurring.html", context={
+            **page_context(request, item.name, "finance", "Recurring service"), "service": item,
+        })
+
+    @get("/Recurring/{service_id:int}/Edit")
+    async def edit_recurring(self, request: Request, service_id: FromPath[int]) -> Template | Redirect:
+        item = FinanceService().get_recurring_service(service_id)
+        if not item:
+            return Redirect("/Finance", status_code=303)
+        fields = recurring_edit_fields(item.currency)
+        values = {field["name"]: getattr(item, field["name"], "") or "" for field in fields}
+        return Template(form_template(request), context=form_context(
+            request, title="Edit recurring service",
+            subtitle="Update the fee or service details without rewriting its billing history.",
+            section="finance", action=f"/Finance/Recurring/{item.id}/Edit",
+            cancel_url=f"/Finance/Recurring/{item.id}", fields=fields, values=values,
+        ))
+
+    @post("/Recurring/{service_id:int}/Edit")
+    async def update_recurring(self, request: Request, service_id: FromPath[int]) -> Template | Redirect:
+        form = await request.form(); values = dict(form); errors = {}
+        item = FinanceService().get_recurring_service(service_id)
+        if not item:
+            return Redirect("/Finance", status_code=303)
+        if not valid_csrf_token(request.session, form.get("csrf_token")):
+            errors["form"] = "This form expired."
+        try: data = RecurringServiceUpdate.model_validate(clean_form(form))
+        except ValidationError as exc: errors.update(form_errors(exc)); data = None
+        if not errors:
+            try: FinanceService().update_recurring_service(service_id, data, request.user.id)
+            except (ValueError, IntegrityError) as exc:
+                errors["form"] = str(exc) if isinstance(exc, ValueError) else "The service changed. Refresh and try again."
+        if errors:
+            return Template(form_template(request), context=form_context(
+                request, title="Edit recurring service", subtitle="Correct the highlighted fields.",
+                section="finance", action=f"/Finance/Recurring/{service_id}/Edit",
+                cancel_url=f"/Finance/Recurring/{service_id}",
+                fields=recurring_edit_fields(item.currency), values=values, errors=errors,
+            ), status_code=422)
+        request.session["flash"] = "Recurring service updated."
+        return redirect_after(request, f"/Finance/Recurring/{service_id}")
+
+    @post("/Recurring/{service_id:int}/Status/{action:str}")
+    async def recurring_status(
+        self, request: Request, service_id: FromPath[int], action: FromPath[str]
+    ) -> Redirect:
+        form = await request.form()
+        if not valid_csrf_token(request.session, form.get("csrf_token")):
+            request.session["error"] = "This form expired."
+            return Redirect(f"/Finance/Recurring/{service_id}", status_code=303)
+        statuses = {
+            "pause": RecurringStatus.PAUSED,
+            "resume": RecurringStatus.ACTIVE,
+            "cancel": RecurringStatus.CANCELLED,
+        }
+        try:
+            status = statuses[action]
+            FinanceService().set_recurring_status(service_id, status, request.user.id)
+            request.session["flash"] = f"Recurring service {status.value.lower()}."
+        except KeyError:
+            request.session["error"] = "Unknown recurring service action."
+        except ValueError as exc:
+            request.session["error"] = str(exc)
+        return Redirect(f"/Finance/Recurring/{service_id}", status_code=303)
 
     @get("/Milestones/New")
     async def new_milestone(self, request: Request, engagement_id: FromQuery[int|None] = None) -> Template:

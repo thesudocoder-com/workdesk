@@ -6,6 +6,9 @@ from Application.Common.Enums import ClientStatus
 class ClientCreate(BaseModel):
     name: str = Field(min_length=2, max_length=160)
     company_name: str | None = Field(default=None, max_length=180)
+    legal_name: str | None = Field(default=None, max_length=180)
+    default_currency: str = Field(default="CAD", min_length=3, max_length=3)
+    tax_identifiers: str | None = Field(default=None, max_length=1000)
     primary_email: EmailStr | None = None
     primary_phone: str | None = Field(default=None, max_length=40)
     website: str | None = Field(default=None, max_length=255)

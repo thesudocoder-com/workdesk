@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from Application.Engagements.Models import Engagement
+from Application.Finance.Models import FixedFeeAgreement, Instalment, Invoice, PaymentAllocation, RecurringService
 from Application.Tasks.Models import WorkTask
 from .Models import Project
 
@@ -18,4 +19,15 @@ class ProjectRepository:
         return list(session.scalars(statement))
 
     def get(self, session: Session, project_id: int) -> Project | None:
-        return session.scalar(select(Project).where(Project.id == project_id).options(selectinload(Project.engagement).selectinload(Engagement.client), selectinload(Project.owner), selectinload(Project.tasks).selectinload(WorkTask.assignee)))
+        return session.scalar(select(Project).where(Project.id == project_id).options(
+            selectinload(Project.engagement).selectinload(Engagement.client),
+            selectinload(Project.engagement).selectinload(Engagement.agreements)
+            .selectinload(FixedFeeAgreement.instalments).selectinload(Instalment.invoice)
+            .selectinload(Invoice.payments),
+            selectinload(Project.engagement).selectinload(Engagement.agreements)
+            .selectinload(FixedFeeAgreement.instalments).selectinload(Instalment.invoice)
+            .selectinload(Invoice.allocations).selectinload(PaymentAllocation.payment),
+            selectinload(Project.engagement).selectinload(Engagement.recurring_services)
+            .selectinload(RecurringService.occurrences),
+            selectinload(Project.owner), selectinload(Project.tasks).selectinload(WorkTask.assignee),
+        ))

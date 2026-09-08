@@ -1,7 +1,7 @@
 {% extends "Layouts/Base.html" %}
 {% block content %}
 <section class="page-intro dashboard-intro">
-  <div><span class="section-kicker">{{ today_label }} · {{ workspace.timezone }}</span><h2>Good {{ greeting }}, {{ current_user.name.split()[0] }}.</h2><p>{% if alerts %}{{ alerts|length }} item{{ 's' if alerts|length != 1 else '' }} need your attention today.{% else %}Everything is moving cleanly. Your attention queue is clear.{% endif %}</p></div>
+  <div><span class="section-kicker">{{ today_label }} · <time data-workspace-clock data-timezone="{{ workspace.timezone }}">{{ local_time_label }}</time></span><h2>Good {{ greeting }}, {{ current_user.name.split()[0] }}.</h2><p>{% if alerts %}{{ alerts|length }} item{{ 's' if alerts|length != 1 else '' }} need your attention today.{% else %}Everything is moving cleanly. Your attention queue is clear.{% endif %}</p></div>
   <div class="intro-actions"><a class="button button-secondary" href="/Tasks/New" hx-get="/Tasks/New" hx-target="#modal-root"><svg><use href="/Static/Images/icons.svg#plus"/></svg>New task</a>{% if current_user.role in ['Developer','Outreach Manager'] %}<a class="button button-primary" href="/Projects/New"><svg><use href="/Static/Images/icons.svg#plus"/></svg>New project</a>{% endif %}</div>
 </section>
 <section class="metric-grid" aria-label="Workspace snapshot">

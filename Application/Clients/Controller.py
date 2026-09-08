@@ -19,6 +19,9 @@ def client_fields() -> list[dict]:
     return [
         {"name": "name", "label": "Primary contact", "type": "text", "required": True, "placeholder": "Jane Smith"},
         {"name": "company_name", "label": "Company name", "type": "text", "required": False, "placeholder": "Acme Corporation"},
+        {"name": "legal_name", "label": "Legal name", "type": "text", "required": False, "placeholder": "Acme Corporation Inc."},
+        {"name": "default_currency", "label": "Default currency", "type": "text", "required": True, "placeholder": "CAD"},
+        {"name": "tax_identifiers", "label": "Tax identifiers", "type": "textarea", "required": False, "wide": True},
         {"name": "primary_email", "label": "Email", "type": "email", "required": False, "placeholder": "jane@acme.ca"},
         {"name": "primary_phone", "label": "Phone", "type": "tel", "required": False, "placeholder": "+1 416 555 0123"},
         {"name": "website", "label": "Website", "type": "url", "required": False, "placeholder": "https://acme.ca"},
@@ -42,7 +45,7 @@ class ClientsController(Controller):
 
     @get("/New", guards=[outreach_or_developer])
     async def new(self, request: Request) -> Template:
-        context = form_context(request, title="New client", subtitle="Add a client and their primary contact details.", section="clients", action="/Clients", cancel_url="/Clients", fields=client_fields(), values={"status": ClientStatus.ACTIVE.value, "country": "Canada"})
+        context = form_context(request, title="New client", subtitle="Add an organization and its primary contact details.", section="clients", action="/Clients", cancel_url="/Clients", fields=client_fields(), values={"status": ClientStatus.ACTIVE.value, "country": "Canada", "default_currency": "CAD"})
         return Template("Common/_Form.html" if request.headers.get("HX-Request") else "Common/Form.html", context=context)
 
     @post(guards=[outreach_or_developer])

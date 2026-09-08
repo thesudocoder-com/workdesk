@@ -5,9 +5,11 @@
   <a href="/Projects" class="mobile-nav-item {% if current_section == 'projects' %}active{% endif %}" {% if current_section == 'projects' %}aria-current="page"{% endif %}>
     <svg><use href="/Static/Images/icons.svg#folder"/></svg><span>Projects</span>
   </a>
-  <a href="/Tasks" class="mobile-nav-item {% if current_section == 'tasks' %}active{% endif %}" {% if current_section == 'tasks' %}aria-current="page"{% endif %}>
-    <svg><use href="/Static/Images/icons.svg#check"/></svg><span>Tasks</span>
-  </a>
+  {% if finance_v2_enabled and current_user.role in ['Developer', 'Outreach Manager'] %}
+  <a href="/Calendar" class="mobile-nav-item {% if current_section == 'calendar' %}active{% endif %}" {% if current_section == 'calendar' %}aria-current="page"{% endif %}><svg><use href="/Static/Images/icons.svg#calendar"/></svg><span>Calendar</span></a>
+  {% else %}
+  <a href="/Tasks" class="mobile-nav-item {% if current_section == 'tasks' %}active{% endif %}" {% if current_section == 'tasks' %}aria-current="page"{% endif %}><svg><use href="/Static/Images/icons.svg#check"/></svg><span>Tasks</span></a>
+  {% endif %}
   {% if current_user.role in ['Developer', 'Outreach Manager'] %}
   <a href="/Finance" class="mobile-nav-item {% if current_section == 'finance' %}active{% endif %}" {% if current_section == 'finance' %}aria-current="page"{% endif %}>
     <svg><use href="/Static/Images/icons.svg#wallet"/></svg><span>Finance</span>

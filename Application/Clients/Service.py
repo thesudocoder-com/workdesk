@@ -4,11 +4,14 @@ from sqlalchemy.orm import selectinload
 from Application.Activity.Models import Activity
 from Application.Activity.Service import ActivityService
 from Application.Engagements.Models import Engagement
-from Application.Finance.Models import Expense, Invoice, Payment
+from Application.Finance.Models import (
+    Expense, FixedFeeAgreement, Instalment, Invoice, Payment, PaymentAllocation,
+    RecurringService,
+)
 from Application.Projects.Models import Project
 from Application.Tasks.Models import WorkTask
 from Application.Users.Repository import session_scope
-from .Models import Client
+from .Models import Client, Contact
 from .Repository import ClientRepository
 from .Schemas import ClientCreate, ClientUpdate
 
@@ -42,6 +45,18 @@ class ClientService:
                     .options(selectinload(Project.owner), selectinload(Project.engagement))
                 )
             )
+            engagements = list(session.scalars(
+                select(Engagement).where(Engagement.client_id == client_id).options(
+                    selectinload(Engagement.owner),
+                    selectinload(Engagement.projects).selectinload(Project.owner),
+                    selectinload(Engagement.agreements).selectinload(FixedFeeAgreement.instalments)
+                    .selectinload(Instalment.invoice).selectinload(Invoice.payments),
+                    selectinload(Engagement.agreements).selectinload(FixedFeeAgreement.instalments)
+                    .selectinload(Instalment.invoice).selectinload(Invoice.allocations)
+                    .selectinload(PaymentAllocation.payment),
+                    selectinload(Engagement.recurring_services).selectinload(RecurringService.occurrences),
+                ).order_by(Engagement.created_at.desc())
+            ))
             activity = list(
                 session.scalars(
                     select(Activity)
@@ -55,6 +70,7 @@ class ClientService:
                 "client": client,
                 "invoices": invoices,
                 "projects": projects,
+                "engagements": engagements,
                 "lifetime_revenue": sum((item.amount_paid for item in invoices), 0),
                 "outstanding": sum((item.outstanding for item in invoices), 0),
                 "activity": activity,
@@ -65,6 +81,10 @@ class ClientService:
             client = Client(**data.model_dump())
             session.add(client)
             session.flush()
+            if client.company_name and client.name.casefold() != client.company_name.casefold():
+                session.add(Contact(client_id=client.id, name=client.name, email=client.primary_email,
+                                    phone=client.primary_phone, is_primary=True,
+                                    legacy_source=f"client:{client.id}:primary"))
             ActivityService.record(session, actor_id, "Client", client.id, "created", f"created {client.display_name}")
             return client
 
@@ -75,6 +95,14 @@ class ClientService:
                 raise ValueError("Client not found.")
             for key, value in data.model_dump().items():
                 setattr(client, key, value)
+            primary = session.scalar(select(Contact).where(
+                Contact.client_id == client.id, Contact.legacy_source == f"client:{client.id}:primary"))
+            if primary:
+                primary.name, primary.email, primary.phone = client.name, client.primary_email, client.primary_phone
+            elif client.company_name and client.name.casefold() != client.company_name.casefold():
+                session.add(Contact(client_id=client.id, name=client.name, email=client.primary_email,
+                                    phone=client.primary_phone, is_primary=True,
+                                    legacy_source=f"client:{client.id}:primary"))
             ActivityService.record(session, actor_id, "Client", client.id, "updated", f"updated {client.display_name}")
             return client
 
@@ -106,4 +134,3 @@ class ClientService:
             session.delete(client)
             session.flush()
             ActivityService.record(session, actor_id, "Client", client_id, "deleted", f"deleted client {display_name}")
-

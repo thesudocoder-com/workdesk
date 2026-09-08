@@ -3,7 +3,58 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
-from Application.Common.Enums import ExpenseCategory, InvoiceStatus, MilestoneStatus, PaymentMethod
+from Application.Common.Enums import (
+    AgreementStatus, BillingFrequency, BillingTiming, ExpenseCategory, InvoiceStatus,
+    MilestoneStatus, PaymentMethod, RecurringStatus,
+)
+
+
+class AgreementCreate(BaseModel):
+    engagement_id: int
+    name: str = Field(min_length=2, max_length=180)
+    contract_value: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    adjustment_amount: Decimal = Field(default=Decimal("0.00"), max_digits=14, decimal_places=2)
+    adjustment_reason: str | None = Field(default=None, max_length=240)
+    status: AgreementStatus = AgreementStatus.ACTIVE
+
+
+class InstalmentCreate(BaseModel):
+    agreement_id: int
+    name: str = Field(min_length=2, max_length=180)
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    due_date: date | None = None
+    sequence: int = Field(default=0, ge=0)
+
+
+class RecurringServiceCreate(BaseModel):
+    engagement_id: int
+    name: str = Field(min_length=2, max_length=180)
+    description: str | None = Field(default=None, max_length=4000)
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    frequency: BillingFrequency
+    interval: int = Field(default=1, ge=1, le=120)
+    start_date: date
+    end_date: date | None = None
+    status: RecurringStatus = RecurringStatus.ACTIVE
+    tax_rate: Decimal = Field(default=Decimal("0.00"), ge=0, le=100)
+    billing_timing: BillingTiming = BillingTiming.ADVANCE
+
+    @model_validator(mode="after")
+    def validate_recurrence(self):
+        if self.frequency == BillingFrequency.ONE_TIME:
+            raise ValueError("Recurring services require a recurring frequency.")
+        if self.end_date and self.end_date < self.start_date:
+            raise ValueError("End date must be on or after the start date.")
+        return self
+
+
+class RecurringServiceUpdate(BaseModel):
+    name: str = Field(min_length=2, max_length=180)
+    description: str | None = Field(default=None, max_length=4000)
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    end_date: date | None = None
+    tax_rate: Decimal = Field(default=Decimal("0.00"), ge=0, le=100)
+    billing_timing: BillingTiming = BillingTiming.ADVANCE
 
 
 class MilestoneCreate(BaseModel):
