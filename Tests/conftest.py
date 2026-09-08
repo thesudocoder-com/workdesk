@@ -1,4 +1,18 @@
+import os
 import re
+from dataclasses import replace
+
+# Tests must never inherit production credentials, secure-cookie behavior, or a
+# production database URL from the shell running pytest. These values are set
+# before importing the application because its settings and middleware are
+# constructed at import time.
+os.environ["WORKDESK_ENV"] = "development"
+os.environ["WORKDESK_DATABASE_URL"] = "sqlite:////tmp/workdesk-pytest-bootstrap.db"
+os.environ["WORKDESK_SESSION_SECRET"] = "workdesk-test-session-secret-not-for-production"
+os.environ["WORKDESK_SESSION_SECURE"] = "false"
+os.environ["WORKDESK_PUBLIC_URL"] = "http://testserver.local"
+os.environ["WORKDESK_SETUP_TOKEN"] = "development-setup-token"
+os.environ["WORKDESK_FINANCE_V2_ENABLED"] = "true"
 
 import pytest
 from alembic import command
@@ -6,7 +20,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 from litestar.testing import TestClient
 
-from Application.Configurations import PROJECT_DIR
+from Application.Configurations import PROJECT_DIR, settings as application_settings
 from Application.Main import app
 from Application.Users.Repository import SessionFactory
 
@@ -15,6 +29,12 @@ from Application.Users.Repository import SessionFactory
 def database(tmp_path, monkeypatch):
     url = f"sqlite:///{tmp_path / 'test.db'}"
     monkeypatch.setenv("WORKDESK_DATABASE_URL", url)
+    test_settings = replace(application_settings, database_url=url)
+    monkeypatch.setattr("Application.Configurations.settings", test_settings)
+    monkeypatch.setattr("Application.Main.settings", test_settings)
+    monkeypatch.setattr("Application.Authentication.Setup.settings", test_settings)
+    monkeypatch.setattr("Application.Users.Repository.settings", test_settings)
+    monkeypatch.setattr("Application.Common.Views.settings", test_settings)
     config = Config(str(PROJECT_DIR / "alembic.ini"))
     config.set_main_option("sqlalchemy.url", url)
     command.upgrade(config, "head")

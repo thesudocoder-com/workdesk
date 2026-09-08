@@ -111,6 +111,7 @@ def configure_templates(engine: JinjaTemplateEngine) -> None:
         public_url=settings.public_url,
         social_image_url=f"{settings.public_url}/Static/Images/og.png",
         business_name="WorkDesk",
+        asset_version="20260908.2",
     )
     engine.engine.filters["cad"] = format_cad
     engine.engine.filters["money"] = format_currency

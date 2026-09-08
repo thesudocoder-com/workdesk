@@ -111,6 +111,8 @@ def test_dashboard_shows_workspace_local_time_not_raw_timezone(client):
     assert "· America/New_York</span>" not in dashboard.text
     assert '· <time data-workspace-clock data-timezone="America/New_York">' in dashboard.text
     assert "data-workspace-clock" in dashboard.text
+    assert '/Static/CSS/App.css?v=20260908.2' in dashboard.text
+    assert '/Static/JS/App.js?v=20260908.2' in dashboard.text
 
 
 def test_finance_migration_is_idempotent(client):

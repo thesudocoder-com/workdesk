@@ -19,12 +19,12 @@
   <meta name="twitter:description" content="Internal operations, in focus.">
   <meta name="twitter:image" content="{{ social_image_url }}">
   <link rel="icon" href="/Static/Images/Favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/Static/CSS/App.css">
-  <link rel="stylesheet" href="/Static/CSS/Refined.css">
-  <link rel="stylesheet" href="/Static/CSS/Usability.css">
+  <link rel="stylesheet" href="/Static/CSS/App.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="/Static/CSS/Refined.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="/Static/CSS/Usability.css?v={{ asset_version }}">
 </head>
 <body class="auth-body">
   {% block content %}{% endblock %}
-  <script src="/Static/JS/App.js" defer></script>
+  <script src="/Static/JS/App.js?v={{ asset_version }}" defer></script>
 </body>
 </html>
